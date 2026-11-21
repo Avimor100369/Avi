@@ -4,8 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F2F7" id="app-theme-color">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
@@ -212,32 +211,15 @@ button, input, textarea, select {
   transform: scale(0.92);
   background: var(--fill-hover);
 }
-
-.theme-switch {
+.theme-btn.auto-active {
+  color: var(--ac);
+  box-shadow: inset 0 0 0 1.5px var(--ac);
+}
+.theme-controls {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 3px;
-  border-radius: 999px;
-  background: var(--fill);
-  border: 1px solid var(--bd);
-  white-space: nowrap;
-}
-.theme-choice {
-  border: 0;
-  border-radius: 999px;
-  padding: 7px 9px;
-  background: transparent;
-  color: var(--tx2);
-  font: inherit;
-  font-size: 11px;
-  font-weight: 650;
-  cursor: pointer;
-}
-.theme-choice.active {
-  background: var(--card);
-  color: var(--ac);
-  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  gap: 5px;
+  flex: 0 0 auto;
 }
 
 .pb {
@@ -1213,53 +1195,50 @@ window.addEventListener('beforeinstallprompt', e => {
   draw();
 });
 
-// Theme preference: auto follows the device, light/dark are manual overrides.
 const getThemePreference = () => {
   const saved = localStorage.getItem('app_theme');
   return saved === 'light' || saved === 'dark' ? saved : 'auto';
 };
 
-const applyThemePreference = preference => {
-  const mode = ['auto', 'light', 'dark'].includes(preference) ? preference : 'auto';
-  if (mode === 'auto') document.documentElement.removeAttribute('data-theme');
-  else document.documentElement.setAttribute('data-theme', mode);
-  localStorage.setItem('app_theme', mode);
-  return mode;
+const applyThemePreference = () => {
+  const preference = getThemePreference();
+  if (preference === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', preference);
+
+  const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const effectiveDark = preference === 'dark' || (preference === 'auto' && systemDark);
+  const themeColor = document.getElementById('app-theme-color');
+  if (themeColor) themeColor.setAttribute('content', effectiveDark ? '#0B0D12' : '#F4F5F8');
 };
 
-let themePreference = applyThemePreference(getThemePreference());
+const initTheme = () => applyThemePreference();
+initTheme();
 
+// The main button toggles only Light/Dark; Auto is selected separately.
 function toggleTheme() {
-  const modes = ['auto', 'light', 'dark'];
-  themePreference = applyThemePreference(modes[(modes.indexOf(themePreference) + 1) % modes.length]);
+  const current = getThemePreference();
+  const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const currentlyDark = current === 'dark' || (current === 'auto' && systemDark);
+  localStorage.setItem('app_theme', currentlyDark ? 'light' : 'dark');
+  applyThemePreference();
   draw();
 }
 
-function themeControls() {
-  const options = [
-    ['auto', 'אוטומטי'],
-    ['light', 'בהיר'],
-    ['dark', 'כהה']
-  ];
-  return h('div', { cls: 'theme-switch', role: 'group', 'aria-label': 'בחירת מצב תצוגה' },
-    ...options.map(([mode, label]) => h('button', {
-      type: 'button',
-      cls: 'theme-choice' + (themePreference === mode ? ' active' : ''),
-      'aria-pressed': themePreference === mode ? 'true' : 'false',
-      onclick: () => { themePreference = applyThemePreference(mode); draw(); }
-    }, label))
-  );
+function setAutoTheme() {
+  localStorage.removeItem('app_theme');
+  applyThemePreference();
+  draw();
 }
 
-// The CSS media query follows OS changes automatically while preference is Auto.
-if (window.matchMedia) {
-  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
-  const onSystemThemeChange = () => {
-    if (themePreference === 'auto') draw();
-  };
-  if (systemTheme.addEventListener) systemTheme.addEventListener('change', onSystemThemeChange);
-  else if (systemTheme.addListener) systemTheme.addListener(onSystemThemeChange);
-}
+const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+const onSystemThemeChange = () => {
+  if (getThemePreference() === 'auto') {
+    applyThemePreference();
+    draw();
+  }
+};
+if (themeMediaQuery.addEventListener) themeMediaQuery.addEventListener('change', onSystemThemeChange);
+else if (themeMediaQuery.addListener) themeMediaQuery.addListener(onSystemThemeChange);
 
 const $ = s => document.querySelector(s);
 
@@ -2005,7 +1984,14 @@ const draw = (preserveFocus = false) => {
           h('div', { cls: 'nav-title' }, viewingWork ? 'עבודה שמורה' : 'דיווח עבודות'),
           h('div', { cls: 'nav-right' },
             !viewingWork && !isSummary ? h('div', { cls: 'nav-step', dir: 'ltr' }, (i + 1) + ' / ' + (st.length + 1)) : null,
-            themeControls()
+            h('div', { cls: 'theme-controls' },
+              h('button', { type: 'button', cls: 'theme-btn', title: isDark ? 'מעבר למצב בהיר' : 'מעבר למצב כהה', 'aria-label': isDark ? 'מעבר למצב בהיר' : 'מעבר למצב כהה', onclick: toggleTheme },
+                svgIcon(isDark ? ICONS.sun : ICONS.moon, 18)
+              ),
+              h('button', { type: 'button', cls: 'theme-btn' + (getThemePreference() === 'auto' ? ' auto-active' : ''), title: 'מצב אוטומטי לפי הגדרות המכשיר', 'aria-label': 'מצב אוטומטי', 'aria-pressed': getThemePreference() === 'auto' ? 'true' : 'false', onclick: setAutoTheme },
+                svgIcon(ICONS.phone, 18)
+              )
+            )
           )
         ),
         h('div', { cls: 'pb' }, h('i', { style: 'width:' + pct + '%' }))
@@ -2020,7 +2006,14 @@ const draw = (preserveFocus = false) => {
     el = [
       h('div', { cls: 'home-top' },
         h('div', { cls: 'status-badge' }, h('span', { cls: 'status-dot' }), 'מערכת דיווח שטח פעילה'),
-        themeControls()
+        h('div', { cls: 'theme-controls' },
+          h('button', { type: 'button', cls: 'theme-btn', title: isDark ? 'מעבר למצב בהיר' : 'מעבר למצב כהה', 'aria-label': isDark ? 'מעבר למצב בהיר' : 'מעבר למצב כהה', onclick: toggleTheme },
+            svgIcon(isDark ? ICONS.sun : ICONS.moon, 18)
+          ),
+          h('button', { type: 'button', cls: 'theme-btn' + (getThemePreference() === 'auto' ? ' auto-active' : ''), title: 'מצב אוטומטי לפי הגדרות המכשיר', 'aria-label': 'מצב אוטומטי', 'aria-pressed': getThemePreference() === 'auto' ? 'true' : 'false', onclick: setAutoTheme },
+            svgIcon(ICONS.phone, 18)
+          )
+        )
       ),
       h('div', { cls: 'hero' },
         h('div', { cls: 'app-icon' }, svgIcon(ICONS.fiber, 40)),
