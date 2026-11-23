@@ -1167,9 +1167,6 @@ input:focus, textarea:focus { box-shadow: 0 0 0 4px var(--ac-soft); }
 <div id="app"></div>
 
 <script>
-// אין רישום Service Worker מתוך Blob: הדפדפנים דורשים קובץ worker מאותו מקור.
-// קובץ HTML עצמאי ממשיך לעבוד ולהתווסף למסך הבית, אך אינו מספק מטמון אופליין.
-
 const S = { date: new Date().toLocaleDateString('sv-SE') };
 let i = -1; 
 let saved = null; 
@@ -1214,7 +1211,6 @@ const applyThemePreference = () => {
 const initTheme = () => applyThemePreference();
 initTheme();
 
-// The main button toggles only Light/Dark; Auto is selected separately.
 function toggleTheme() {
   const current = getThemePreference();
   const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1313,7 +1309,7 @@ const CAB = () => [
   { title: 'פרטי ארונית', fields: [f('cab', 'num', 'מספר ארונית'), f('cl', 'choice', 'מיקום ארונית', { o: ['חיצוני', 'פנימי'] }), f('ext', 'choice', 'מיקום חיצוני', { o: ['פילר', 'עמוד', 'חזית', 'עורף', 'אחר'], show: () => S.cl === 'חיצוני' }), f('extO', 'text', 'פירוט', { show: () => S.cl === 'חיצוני' && S.ext === 'אחר' }), f('it', 'choice', 'סוג מיקום', { o: ['PPC', 'LSB'], show: () => S.cl === 'פנימי' }), f('fl', 'text', 'קומה', { show: () => S.cl === 'פנימי' })] },
   { title: 'היתוכים ומפצלים', fields: [f('fus', 'num', 'מספר היתוכים'), f('ns', 'count', 'כמות מפצלים'), f('spl', 'rows', 'מפצל', { n: 'ns', cols: [f('t', 'choice', 'סוג מפצל', { o: [...SP, 'פיגטייל'] })] })] },
   { title: 'הפעלה', fields: [f('act', 'choice', 'הפעלה', { o: ['כולל הפעלה', 'לא כולל הפעלה'] })] },
-  { title: 'תמונות', fields: [...PH(['תמונה מרחוק', 'תמונה מקרוב']), ...PH(['תמונה מהפעלה בצב״ד', 'תמונת מד אור']).map(x => ({ ...x, show: () => S.act === 'כולל הפעלה' }))] },
+  { title: 'תמונות', fields: [...PH(['תמונה מרחוק', 'תמונה מקרוב']), ...PH(['תמונה מהפעלה בצב״ד', 'תמונת מד אור']).map(x => ({ ...x, show: () => S.act === 'כולל הפעלה'  }))] },
   NOTES
 ];
 
@@ -1594,15 +1590,125 @@ function lines(stateObj = S) {
   return { out, ph };
 }
 
+async function getGPSLocation() {
+  if (!('geolocation' in navigator)) return null;
+  return new Promise(resolve => {
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        accuracy: pos.coords.accuracy
+      }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 7000, maximumAge: 60000 }
+    );
+  });
+}
+
+async function uploadReportPhotos(reportId, ph, supabaseBaseUrl, anonKey) {
+  const uploadedPhotos = [];
+  const bucket = 'report-photos';
+
+  for (let catIdx = 0; catIdx < ph.length; catIdx++) {
+    const [category, images] = ph[catIdx];
+    for (let imgIdx = 0; imgIdx < images.length; imgIdx++) {
+      const dataUrl = images[imgIdx];
+      try {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const fileName = `${reportId}/${Date.now()}_${catIdx}_${imgIdx}.jpg`;
+        const uploadUrl = `${supabaseBaseUrl}/storage/v1/object/${bucket}/${fileName}`;
+
+        const upRes = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'apikey': anonKey,
+            'Authorization': `Bearer ${anonKey}`,
+            'Content-Type': 'image/jpeg',
+            'x-upsert': 'true'
+          },
+          body: blob
+        });
+
+        if (upRes.ok) {
+          const publicUrl = `${supabaseBaseUrl}/storage/v1/object/public/${bucket}/${fileName}`;
+          uploadedPhotos.push({ category, url: publicUrl });
+        } else {
+          console.error('שגיאה בהעלאת תמונה ל-Storage:', await upRes.text());
+        }
+      } catch (err) {
+        console.error('שגיאה בעיבוד או העלאת תמונה:', err);
+      }
+    }
+  }
+  return uploadedPhotos;
+}
+
 async function saveWorkRecord(out, ph) {
   const nowStr = new Date().toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' });
   const id = editingId || (saved && saved.id) || ('R-' + Date.now().toString(36).toUpperCase());
   const existingIdx = savedWorks.findIndex(w => w.id === id);
   const createdAt = existingIdx >= 0 ? savedWorks[existingIdx].createdAt : nowStr;
   const photoCount = ph.reduce((sum, [, arr]) => sum + arr.length, 0);
+
+  const gps = await getGPSLocation();
+
+  try {
+    const SUPABASE_BASE_URL = 'https://oisozmbfaebtqicleufm.supabase.co';
+    const SUPABASE_URL = `${SUPABASE_BASE_URL}/rest/v1/reports`;
+    const SUPABASE_ANON_KEY = 'sb_publishable_8F8GsbT_3oCguIchXRwe0A_zATL1KWA';
+
+    const uploadedPhotos = await uploadReportPhotos(id, ph, SUPABASE_BASE_URL, SUPABASE_ANON_KEY);
+
+    const dynamicDetails = {};
+    Object.keys(S).forEach(k => {
+      if (!k.startsWith('ph:')) dynamicDetails[k] = S[k];
+    });
+
+    const reportPayload = {
+      report_id: id,
+      contractor: S.contractor || null,
+      work_date: S.date || null,
+      project: S.project || null,
+      city: S.city || null,
+      address: S.address || null,
+      company: S.co || null,
+      work_type: S.wk || null,
+      sub_type: S.ks || S.sub || null,
+      ticket_num: S.tk || null,
+      notes: S.notes || null,
+      photo_count: photoCount,
+      photos: uploadedPhotos,
+      latitude: gps ? gps.latitude : null,
+      longitude: gps ? gps.longitude : null,
+      gps_accuracy: gps ? gps.accuracy : null,
+      details: dynamicDetails,
+      created_at: new Date().toISOString()
+    };
+
+    const supResponse = await fetch(SUPABASE_URL, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(reportPayload)
+    });
+
+    if (supResponse.ok) {
+      console.log('דיווח ותמונות נשלחו בהצלחה ל-Supabase!');
+    } else {
+      console.error('שגיאה בשליחה ל-Supabase:', await supResponse.text());
+    }
+  } catch (apiError) {
+    console.error('בעיית תקשורת מול מסד הנתונים:', apiError);
+  }
+
   const record = {
     id, createdAt, updatedAt: nowStr, ts: Date.now(),
-    data: JSON.parse(JSON.stringify(S)), lines: out, photoCount,
+    data: JSON.parse(JSON.stringify(S)), lines: out, photoCount, gps,
     meta: {
       contractor: S.contractor || '', date: S.date || '',
       project: S.project || 'עבודה ללא שם', city: S.city || '',
@@ -1616,7 +1722,6 @@ async function saveWorkRecord(out, ph) {
   else nextWorks.unshift(record);
 
   try {
-    // Do not update the visible saved state until the IndexedDB transaction succeeds.
     await idb('put', 'saved_works', nextWorks);
   } catch (e) {
     console.error('IndexedDB save failed:', e);
@@ -1628,7 +1733,6 @@ async function saveWorkRecord(out, ph) {
   saved = { id, at: nowStr };
   editingId = id;
 
-  // This is only a lightweight index for recovery/list display, not a full backup.
   try {
     const lite = savedWorks.map(({ id, createdAt, updatedAt, ts, lines, photoCount, meta }) => ({
       id, createdAt, updatedAt, ts, lines, photoCount, meta
@@ -1636,11 +1740,11 @@ async function saveWorkRecord(out, ph) {
     localStorage.setItem('reports_lite', JSON.stringify(lite));
   } catch (e) {}
 
-  try { await idb('del', 'draft'); } catch (e) { console.warn('Could not clear saved draft:', e); }
+  try { await idb('del', 'draft'); } catch (e) {}
   try { localStorage.removeItem('draft'); } catch (e) {}
   draft = null;
 
-  toast('העבודה נשמרה ברשימת העבודות השמורות');
+  toast('העבודה נשמרה באפליקציה ונשלחה לאתר הניהול');
   draw();
   return true;
 }
@@ -2227,8 +2331,6 @@ async function mkPDF(out, ph) {
 
 let pc = { k: '', p: null };
 const getPdf = (out, ph) => {
-  // Include the actual image data so replacing a photo with another of equal size
-  // cannot accidentally reuse a stale PDF.
   const k = JSON.stringify([out, ph]);
   if (pc.k !== k) { pc.k = k; pc.p = mkPDF(out, ph); pc.p.catch(() => {}); }
   return pc.p;
@@ -2423,7 +2525,6 @@ Promise.all([idb('get', 'draft'), idb('get', 'saved_works')]).then(([d, works]) 
 });
 </script>
 <script>
-// PWA offline support: GitHub Pages serves this app over HTTPS.
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js', { scope: './' })
