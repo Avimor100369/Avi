@@ -1667,23 +1667,9 @@ async function saveWorkRecord(out, ph) {
 
     const reportPayload = {
       report_id: id,
-      contractor: S.contractor || null,
-      work_date: S.date || null,
-      project: S.project || null,
-      city: S.city || null,
-      address: S.address || null,
-      company: S.co || null,
-      work_type: S.wk || null,
-      sub_type: S.ks || S.sub || null,
-      ticket_num: S.tk || null,
-      notes: S.notes || null,
-      photo_count: photoCount,
-      photos: uploadedPhotos,
-      latitude: gps ? gps.latitude : null,
-      longitude: gps ? gps.longitude : null,
-      gps_accuracy: gps ? gps.accuracy : null,
-      details: dynamicDetails,
-      created_at: new Date().toISOString()
+      contractor_name: S.contractor || null,
+      date: S.date || null,
+      project: S.project || null
     };
 
     const supResponse = await fetch(SUPABASE_URL, {
