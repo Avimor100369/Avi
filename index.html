@@ -1671,8 +1671,13 @@ async function saveWorkRecord(out, ph) {
       date: S.date || null,
       project: S.project || null
     };
-
-    const supResponse = await fetch(SUPABASE_URL, {
+    const extraPayload = Object.assign({}, reportPayload, {
+      city: S.city || null,
+      address: S.address || null,
+      company: S.co || null,
+      photos: JSON.stringify(uploadedPhotos)
+    });
+    const postReport = (body) => fetch(SUPABASE_URL, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_ANON_KEY,
@@ -1680,8 +1685,14 @@ async function saveWorkRecord(out, ph) {
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify(reportPayload)
+      body: JSON.stringify(body)
     });
+
+    let supResponse = await postReport(extraPayload);
+    if (!supResponse.ok) {
+      console.warn('שליחה מורחבת נכשלה, שולח את השדות הבסיסיים:', await supResponse.text());
+      supResponse = await postReport(reportPayload);
+    }
 
     if (supResponse.ok) {
       console.log('דיווח ותמונות נשלחו בהצלחה ל-Supabase!');
