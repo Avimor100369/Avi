@@ -1688,7 +1688,13 @@ async function saveWorkRecord(out, ph) {
       body: JSON.stringify(body)
     });
 
-    let supResponse = await postReport(extraPayload);
+    const detailsPayload = Object.assign({}, extraPayload, { details: { lines: out, gps: gps || null } });
+
+    let supResponse = await postReport(detailsPayload);
+    if (!supResponse.ok) {
+      console.warn('שליחה מלאה נכשלה, מנסה בלי פרטי העבודה:', await supResponse.text());
+      supResponse = await postReport(extraPayload);
+    }
     if (!supResponse.ok) {
       console.warn('שליחה מורחבת נכשלה, שולח את השדות הבסיסיים:', await supResponse.text());
       supResponse = await postReport(reportPayload);
