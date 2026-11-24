@@ -1391,7 +1391,7 @@ const steps = () => {
   normalizeS();
   const uni = isUni(), build = S.wk === 'הקמות' || S.wk === 'לקוח עסקי';
   return [
-  { title: 'פרטים ראשוניים', fields: [f('contractor', 'text', 'קבלן מבצע'), f('date', 'date', 'תאריך ביצוע'), f('project', 'text', 'שם פרויקט'), f('city', 'city', 'עיר'), f('address', 'text', 'כתובת')] },
+  { title: 'פרטים ראשוניים', fields: [f('contractor', 'text', 'קבלן מבצע'), f('date', 'date', 'תאריך ביצוע'), f('project', 'text', 'שם פרויקט'), f('city', 'city', 'עיר'), f('address', 'addr', 'כתובת')] },
   { title: 'בחירת חברה', fields: [f('co', 'choice', 'חברה', { o: ['IBC', 'HOT', 'UNIGAEA', 'RIMON'] })] },
   { title: 'סוג עבודה', fields: [f('wk', 'choice', 'סוג עבודה', { o: uni ? ['לקוח עסקי', 'תחזוקה', 'ציר הזנה'] : ['הקמות', 'תחזוקה', 'ציר הזנה', 'הפעלות'] })] },
   ...(build ? [{ title: S.wk, fields: [f('ks', 'choice', 'מה הוקם?', { o: ['קלוז׳ר', 'ארונית', 'התקנת פנל'] })] }, ...(S.ks === 'קלוז׳ר' ? CL() : S.ks === 'ארונית' ? CAB() : S.ks === 'התקנת פנל' ? PNL() : [])] : S.wk === 'תחזוקה' ? MT() : S.wk === 'ציר הזנה' ? CL() : S.wk === 'הפעלות' ? [{ title: 'תמונות הפעלה', fields: PHG('hp', ['תמונה עם צב״ד', 'תמונה עם דמוקס', 'תמונה סיום הפעלה']) }, NOTES] : [])
@@ -1403,11 +1403,7 @@ const steps = () => {
 const CITY_LIST = ["ירושלים","תל אביב","תל אביב יפו","יפו","חיפה","ראשון לציון","פתח תקווה","אשדוד","נתניה","באר שבע","בני ברק","חולון","רמת גן","בת ים","רחובות","אשקלון","הרצליה","כפר סבא","חדרה","מודיעין מכבים רעות","מודיעין","נס ציונה","לוד","רמלה","רעננה","רמת השרון","גבעתיים","הוד השרון","קריית אתא","קריית גת","קריית מלאכי","קריית שמונה","קריית ביאליק","קריית מוצקין","קריית ים","קריית אונו","קריית עקרון","קריית טבעון","נהריה","עכו","כרמיאל","נצרת","נצרת עילית","נוף הגליל","טבריה","צפת","עפולה","אילת","דימונה","ערד","אופקים","נתיבות","שדרות","יבנה","גדרה","אור יהודה","אור עקיבא","יהוד מונוסון","יהוד","בית שמש","מעלה אדומים","אריאל","ביתר עילית","מודיעין עילית","בית שאן","מגדל העמק","יקנעם עילית","יקנעם","טירת כרמל","נשר","מעלות תרשיחא","שלומי","קצרין","ראש העין","ראש פינה","אבן יהודה","אבו גוש","אבו סנאן","אום אל פחם","אום אל קוטוף","אזור","אלעד","אלפי מנשה","אלקנה","אפרת","אכסל","אעבלין","אשכול","באר יעקב","באקה אל גרביה","בית אל","בית אריה","בית דגן","בית ג׳ן","בית חנינא","בנימינה גבעת עדה","בנימינה","בסמת טבעון","בסמה","בועיינה נוג׳ידאת","בוקעאתא","בענה","בני עי״ש","בני שמעון","בקעת הירדן","ג׳דיידה מכר","ג׳ולס","ג׳סר א זרקא","ג׳ת","גבעת זאב","גבעת שמואל","גן יבנה","גני תקווה","דאלית אל כרמל","דבוריה","דייר אל אסד","דייר חנא","הר אדר","זכרון יעקב","זמר","חבל מודיעין","חורה","חורפיש","חצור הגלילית","חריש","טורעאן","טייבה","טירה","טמרה","יאנוח ג׳ת","יבנאל","יסוד המעלה","יפיע","ירכא","ירוחם","כאבול","כוכב יאיר","כוכב יעקב","כסיפה","כסרא סמיע","כעביה טבאש חג׳אג׳רה","כפר ברא","כפר חב״ד","כפר יאסיף","כפר יונה","כפר כנא","כפר מנדא","כפר קאסם","כפר קרע","כפר תבור","כפר ורדים","להבים","לפיד","לקיה","מבשרת ציון","מבואות יריחו","מג׳דל שמס","מגאר","מזכרת בתיה","מזרעה","מטולה","מיתר","מסעדה","מעיליא","מעלה עירון","מעלה אפרים","מצפה רמון","מרום הגליל","מבוא ביתר","משהד","משגב","נאעורה","נחף","נוף איילון","סאג׳ור","סאסא","סח׳נין","ספסופה","עומר","עיילבון","עילוט","עין מאהל","עין קניה","עספיא","עראבה","ערערה","ערערה בנגב","עתלית","פוריידיס","פסוטה","פקיעין","פרדס חנה כרכור","פרדסיה","צור הדסה","צור יצחק","צורן קדימה","קדימה צורן","קדומים","קלנסווה","קרני שומרון","ראמה","רהט","ריינה","רכסים","רמת ישי","שגב שלום","שדות נגב","שדות דן","שוהם","שבלי אום אל גנם","שעב","שפרעם","שער הנגב","תל שבע","תל מונד","תראבין א צאנע","עין השופט","עין חרוד","אבן שמואל","אביחיל","אביגדור","אדרת","אחיעזר","אליכין","אלישמע","אמירים","אשתאול","בארות יצחק","בית חנן","בית עובד","בית עזרא","בית ברל","ברקת","גאליה","גבעת ברנר","גבעת חיים","גדעונה","גבע","גינוסר","גנות","דגניה","דליה","חולתה","חניתה","טירת צבי","יגור","יד מרדכי","כפר גלעדי","כפר סילבר","כפר מימון","מגדל","מגן שאול","מעגן מיכאל","מרחביה","משמר העמק","נחשולים","נחשון","נס הרים","נצר סרני","נתיב הל״ה","עין גדי","עין גב","עין החורש","עינת","פלמחים","צרעה","קבוצת יבנה","קיסריה","רמות השבים","שדה ורבורג","שדה בוקר","שדה אליהו","שדה יעקב","שפיים","שריד","תקומה","אור הנר","אלון שבות","גוש עציון","כפר אדומים","מעלה מכמש","נוקדים","תקוע","ביתר","אלון מורה","איתמר","ברכה","הר ברכה","יצהר","עלי","שילה","פסגות","עופרה","מעלה לבונה","אורנית","מעלה שומרון","קרית ארבע","קריית ארבע","יקיר","ניצני עוז","נירית","נחלים","סביון","סבייון","ג׳לג׳וליה","ג׳לגוליה","מגדל עוז","אשל הנשיא","באר טוביה","בית קמה","גבעת ח״ן","גן שורק","גן שלמה","חוות יאיר","טירת יהודה","כפר ביאליק","כפר ביל״ו","כפר הנגיד","כפר נטר","מצליח","מישר","משמר השבעה","נטעים","ניר צבי","עיינות","פארן","קדרון","קרית עקרון","שדמות","שעלבים","תימורים","תלמי יפה","תלמי אלעזר","נהלל","נחלת יהודה","נווה ירק","נווה אפעל","עין שריג","פתחיה","רמות מאיר","בית זית","הר גילה","גילה","תלפיות","פסגת זאב","נווה יעקב","רמות","רמת אשכול","גבעת שאול","הר חומה","קרית אונו","כרמל","עין כרמל","עין הוד","עין חוד","עין עירון","חוף הכרמל","נווה שלום","רמת הכובש","רמת רחל","רמת דוד","שער אפרים","שער העמקים","שדמות דבורה"];
 const normCity = t => String(t || '').replace(/[׳'’`"״]/g, '').replace(/[-–—־]/g, ' ').replace(/קריית/g, 'קרית').replace(/\s+/g, ' ').trim();
 const CITY_SET = new Set(CITY_LIST.map(normCity));
-(function () {
-  const dl = document.createElement('datalist'); dl.id = 'cities-dl';
-  [...new Set(CITY_LIST)].sort((a, b) => a.localeCompare(b, 'he')).forEach(c => { const o = document.createElement('option'); o.value = c; dl.append(o); });
-  document.body.append(dl);
-})();
+
 // מחזיר false אם הטכנאי בחר לתקן את שם היישוב; אחרת מאפשר להמשיך (גם עם שם שלא ברשימה, אחרי אישור)
 function cityOk(st) {
   if (!st.fields.some(x => x.t === 'city') || !S.city) return true;
@@ -1416,6 +1412,62 @@ function cityOk(st) {
   if (!confirm('השם שהוקלד (' + S.city.trim() + ') אינו ברשימת היישובים הרשמית.\nהאם להמשיך בכל זאת?')) return false;
   S.cityOk = c;
   return true;
+}
+
+/* ===== תיבת הצעות (עובדת בכל דפדפן, גם בתוך וואטסאפ): יישובים מרשימה מקומית, כתובות מ-OpenStreetMap ===== */
+(function () {
+  const st = document.createElement('style');
+  st.textContent = '.sg-wrap{position:relative}.sg-box{position:absolute;right:0;left:0;top:100%;margin-top:4px;z-index:60;background:var(--card,#fff);border:1px solid var(--sep,rgba(0,0,0,.12));border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-height:260px;overflow:auto}' +
+    '.sg-it{display:block;width:100%;text-align:right;padding:13px 14px;font-size:16px;background:none;border:0;border-bottom:1px solid var(--sep,rgba(0,0,0,.08));color:var(--tx,#000);font-family:inherit;cursor:pointer}.sg-it:last-child{border-bottom:0}.sg-it:active{background:var(--ac-soft,rgba(0,122,255,.12))}.sg-hint{padding:10px 14px;font-size:13px;color:var(--tx2,#8E8E93)}';
+  document.head.append(st);
+})();
+const addrCache = {};
+async function fetchAddr(q) {
+  if (addrCache[q]) return addrCache[q];
+  const r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&accept-language=he&countrycodes=il&limit=8&q=' + encodeURIComponent(q));
+  if (!r.ok) throw new Error('addr');
+  const j = await r.json(), seen = new Set(), out = [];
+  j.forEach(p => {
+    const a = p.address || {}, road = a.road || a.pedestrian || a.footway || a.path;
+    if (!road) return;
+    const v = road + (a.house_number ? ' ' + a.house_number : '');
+    if (!seen.has(v)) { seen.add(v); out.push(v); }
+  });
+  return (addrCache[q] = out);
+}
+function suggestBox(ip, x, o, fv) {
+  const box = h('div', { cls: 'sg-box', style: 'display:none' });
+  let tm, tok = 0;
+  const hide = () => { box.style.display = 'none'; };
+  const pick = v => { ip.value = v; o[x.k] = v; fv.classList.add('on'); const g = ip.closest('.field-group'); if (g) g.classList.remove('miss'); hide(); updSP(); sd(); };
+  const render = (items, hint) => {
+    box.replaceChildren(...items.map(v => h('button', { type: 'button', cls: 'sg-it', onpointerdown: e => { e.preventDefault(); pick(v); } }, v)), ...(hint ? [h('div', { cls: 'sg-hint' }, hint)] : []));
+    box.style.display = items.length || hint ? 'block' : 'none';
+  };
+  const upd = () => {
+    const t = ip.value.trim();
+    clearTimeout(tm);
+    if (x.t === 'city') {
+      if (!t) { hide(); return; }
+      const n = normCity(t);
+      const all = [...new Set(CITY_LIST)];
+      const pre = all.filter(c => normCity(c).startsWith(n)), sub = all.filter(c => !normCity(c).startsWith(n) && normCity(c).includes(n));
+      render([...pre, ...sub].slice(0, 8));
+    } else {
+      if (t.length < 3) { hide(); return; }
+      const my = ++tok;
+      tm = setTimeout(async () => {
+        try {
+          const items = await fetchAddr((S.city ? S.city + ' ' : '') + t);
+          if (my === tok && document.activeElement === ip) render(items.slice(0, 8), items.length ? '' : '');
+        } catch (e) { hide(); }
+      }, 600);
+    }
+  };
+  ip.addEventListener('input', upd);
+  ip.addEventListener('focus', upd);
+  ip.addEventListener('blur', () => setTimeout(hide, 200));
+  return h('div', { cls: 'sg-wrap' }, ip, box);
 }
 
 const vis = (x, o) => !x.show || x.show(o);
@@ -1599,8 +1651,8 @@ function fld(x, o) {
   } else {
     const ip = h(x.t === 'area' ? 'textarea' : 'input', {
       type: x.t === 'date' ? 'date' : 'text',
-      placeholder: x.t === 'area' ? 'הוסף הערות כאן...' : x.t === 'city' ? 'התחל להקליד שם יישוב…' : 'הזן ' + lab(x, o),
-      ...(x.t === 'city' ? { list: 'cities-dl', autocomplete: 'off' } : {}),
+      placeholder: x.t === 'area' ? 'הוסף הערות כאן...' : x.t === 'city' ? 'התחל להקליד שם יישוב…' : x.t === 'addr' ? 'התחל להקליד רחוב ומספר…' : 'הזן ' + lab(x, o),
+      ...(x.t === 'city' || x.t === 'addr' ? { autocomplete: 'off' } : {}),
       ...(x.t === 'num' ? { inputmode: 'numeric', pattern: '[0-9]*' } : {})
     });
     ip.value = o[x.k] || '';
@@ -1631,7 +1683,7 @@ function fld(x, o) {
         } catch (e) { ip.blur(); }
       });
     }
-    b = ip;
+    b = (x.t === 'city' || x.t === 'addr') ? suggestBox(ip, x, o, fv) : ip;
   }
   let miss = false;
   try { miss = errs.length > 0 && !x.opt && isEmptyFld(x, o); } catch (e) {}
