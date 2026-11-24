@@ -1160,6 +1160,12 @@ input:focus, textarea:focus { border-color: var(--ac); }
 .work-card:active { box-shadow: var(--ring); }
 .card, .work-card, .draft { transition: box-shadow .2s ease, border-color .2s ease; }
 input:focus, textarea:focus { box-shadow: 0 0 0 4px var(--ac-soft); }
+.btn.saving { opacity: .85; pointer-events: none; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.spin { width: 18px; height: 18px; border-radius: 50%; border: 3px solid rgba(255,255,255,.45); border-top-color: #fff; animation: faspin .7s linear infinite; display: inline-block; }
+@keyframes faspin { to { transform: rotate(360deg); } }
+.appr-tag { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 99px; }
+.appr-tag.ok { color: var(--ok); background: rgba(52,199,89,.14); }
+.appr-tag.bad { color: var(--er); background: rgba(255,59,48,.12); }
 </style>
 </head>
 <body>
@@ -1287,63 +1293,130 @@ const f = (k, t, l, x = {}) => ({ k, t, l, ...x });
 const lab = (x, o) => typeof x.l === 'function' ? x.l(o) : x.l;
 const SP = ['1:4', '1:8', '1:16', '1:32'];
 const CB = ['12', '36', '48', '72', '96', '288'];
-const PH = (a, opt) => a.map(l => f('ph:' + l, 'photo', l, { opt }));
+const PH = a => a.map(l => f('ph:' + l, 'photo', l));
+// תמונות עם מפתח ייחודי לכל קבוצה (כדי שאותה כותרת בשלבים שונים לא תשתף תמונות)
+const PHG = (g, a, show, pre = '') => a.map(l => f('ph:' + g + ':' + l, 'photo', pre + l, show ? { show } : {}));
+const isUni = () => S.co === 'UNIGAEA';
+const CL_PH = ['תמונת קלוז׳ר', 'תמונת מגש היתוכים', 'תמונת סל איסוף', 'צילום כבלים בקלוז׳ר', 'צילום מרחוק של הקלוז׳ר'];
 const NOTES = { title: 'הערות', fields: [f('notes', 'area', 'טקסט חופשי', { opt: 1 })] };
 const has = v => () => (S.acts || []).includes(v);
 
 const PNL = () => [
   { title: 'פרטי פנל', fields: [f('pnlSize', 'choice', 'גודל פנל', { o: ['12', '24', '48', '72', '96', '144', '288'] })] },
-  { title: 'תמונות', fields: PH(['תמונת פנל'], 1) },
+  { title: 'תמונות', fields: PH(['תמונה של פנל כולל מדבקה', 'צילום ארון מרחוק']) },
   NOTES
 ];
 
 const CL = () => [
-  { title: 'מיקום', fields: [f('loc', 'choice', 'גוב או עמוד', { o: ['גוב', 'עמוד'] }), f('locNum', 'num', () => 'מספר ' + S.loc, { show: () => S.loc })] },
-  { title: 'סוג קלוז׳ר', fields: [f('ct', 'choice', 'סוג קלוז׳ר', { o: ['קטן', 'בינוני', 'גדול', 'פתיחה סגירה'] }), f('ctFor', 'text', 'פתיחה סגירה עבור', { show: () => S.ct === 'פתיחה סגירה' })] },
+  { title: 'מיקום', fields: [f('loc', 'choice', 'גוב או עמוד', { o: ['גוב', 'עמוד', 'אחר'] }), f('locNum', 'num', () => 'מספר ' + S.loc, { show: () => S.loc === 'גוב' || S.loc === 'עמוד' }), f('locO', 'text', 'פירוט מיקום (אחר)', { opt: 1, show: () => S.loc === 'אחר' })] },
+  { title: 'סוג קלוז׳ר', fields: [f('ct', 'choice', 'סוג קלוז׳ר', { o: ['קטן', 'בינוני', 'גדול', 'פתיחה סגירה'] }), f('ctFor', 'text', 'פתיחה סגירה עבור', { opt: 1, show: () => S.ct === 'פתיחה סגירה' })] },
   { title: 'היתוכים וכבלים', fields: [f('fus', 'num', 'כמות היתוכים בקלוז׳ר'), f('nc', 'count', 'כמות הכנסת כבלים'), f('cables', 'rows', 'כבל', { n: 'nc', cols: [f('t', 'choice', 'סוג כבל', { o: CB }), f('n', 'num', 'מספר כבל')] })] },
-  { title: 'תמונות', fields: PH(['תמונת קלוז׳ר', 'תמונת מגש היתוכים', 'תמונת סל איסוף', 'צילום כבלים בקלוז׳ר', 'צילום מרחוק של הקלוז׳ר']) },
+  { title: 'תמונות', fields: PH(isUni() && S.wk === 'ציר הזנה' ? [...CL_PH, 'צילום מדבקת מספר UNIGAEA'] : CL_PH) },
   NOTES
 ];
 
 const CAB = () => [
-  { title: 'פרטי ארונית', fields: [f('cab', 'num', 'מספר ארונית'), f('cl', 'choice', 'מיקום ארונית', { o: ['חיצוני', 'פנימי'] }), f('ext', 'choice', 'מיקום חיצוני', { o: ['פילר', 'עמוד', 'חזית', 'עורף', 'אחר'], show: () => S.cl === 'חיצוני' }), f('extO', 'text', 'פירוט', { show: () => S.cl === 'חיצוני' && S.ext === 'אחר' }), f('it', 'choice', 'סוג מיקום', { o: ['PPC', 'LSB'], show: () => S.cl === 'פנימי' }), f('fl', 'text', 'קומה', { show: () => S.cl === 'פנימי' })] },
-  { title: 'היתוכים ומפצלים', fields: [f('fus', 'num', 'מספר היתוכים'), f('ns', 'count', 'כמות מפצלים'), f('spl', 'rows', 'מפצל', { n: 'ns', cols: [f('t', 'choice', 'סוג מפצל', { o: [...SP, 'פיגטייל'] })] })] },
+  { title: 'פרטי ארונית', fields: [f('cab', 'num', 'מספר ארונית'), f('cl', 'choice', 'מיקום ארונית', { o: ['חיצוני', 'פנימי'] }), f('ext', 'choice', 'מיקום חיצוני', { o: ['פילר', 'עמוד', 'חזית', 'עורף', 'אחר'], show: () => S.cl === 'חיצוני' }), f('extNum', 'num', 'מספר עמוד', { show: () => S.cl === 'חיצוני' && S.ext === 'עמוד' }), f('extO', 'text', 'פירוט', { opt: 1, show: () => S.cl === 'חיצוני' && S.ext === 'אחר' }), f('it', 'choice', 'סוג מיקום', { o: ['PPC', 'LSB'], show: () => S.cl === 'פנימי' }), f('fl', 'text', 'קומה', { show: () => S.cl === 'פנימי' })] },
+  { title: 'היתוכים ומפצלים', fields: [f('fus', 'num', 'מספר היתוכים'), f('ns', 'count', 'כמות מפצלים'), f('spl', 'rows', 'מפצל', { n: 'ns', cols: [f('t', 'choice', 'סוג מפצל', { o: [...SP, 'Pigtail'] })] })] },
   { title: 'הפעלה', fields: [f('act', 'choice', 'הפעלה', { o: ['כולל הפעלה', 'לא כולל הפעלה'] })] },
   { title: 'תמונות', fields: [...PH(['תמונה מרחוק', 'תמונה מקרוב']), ...PH(['תמונה מהפעלה בצב״ד', 'תמונת מד אור']).map(x => ({ ...x, show: () => S.act === 'כולל הפעלה'  }))] },
   NOTES
 ];
 
+const ACT_YN = ['כולל הפעלה', 'לא כולל הפעלה'];
+// שלב תמונות לפי פעולה: תמונה מרחוק + מקרוב, ובמקרה של "כולל הפעלה" גם צב״ד ומד אור – הכל חובה
+const actPhotoStep = (act, key, g) => ({
+  title: 'תמונות – ' + act,
+  fields: [
+    ...PHG(g, ['תמונה מרחוק', 'תמונה מקרוב'], null, act + ' – '),
+    ...PHG(g, ['תמונה מהפעלה בצב״ד', 'תמונת מד אור'], () => S[key] === 'כולל הפעלה', act + ' – ')
+  ]
+});
+
 const MT = () => {
-  const a = [{ title: 'סוג תחזוקה', fields: [f('sub', 'choice', 'סוג תחזוקה', { o: ['תקלות', 'הרחבות'] })] }];
-  if (S.sub === 'תקלות') a.push(
-    { title: 'פרטי תקלה', fields: [f('tk', 'num', 'מספר טיקט'), f('ft', 'choice', 'סוג תקלה', { o: ['תקלת עוצמות', 'Optical issue'] })] },
-    { title: 'פעולות לביצוע', fields: [
-      f('acts', 'multi', 'בחירת פעולות (ניתן לבחור כמה)', { o: ['תיקון בארונית', 'החלפת מפצל', 'החלפת פיקטל', 'פתיחת קלוז׳רים'] }),
-      f('fCab', 'num', 'מספר ארונית', { show: has('תיקון בארונית') }),
-      f('fFus', 'num', 'כמות היתוכים', { show: has('תיקון בארונית') }),
-      f('fSp', 'choice', 'סוג מפצל', { o: SP, show: has('החלפת מפצל') }),
-      f('nK', 'count', 'כמות קלוז׳רים שנפתחו', { show: has('פתיחת קלוז׳רים') }),
-      f('cls', 'rows', 'קלוז׳ר', { n: 'nK', show: has('פתיחת קלוז׳רים'), cols: [f('n', 'num', 'מספר קלוז׳ר'), f('fus', 'num', 'כמות היתוכים')] })
-    ] },
-    { title: 'תמונות וקבצים', fields: PH(['תמונות'], 1) },
-    NOTES
-  );
+  const uni = isUni();
+  const a = [];
+  if (!uni) a.push({ title: 'סוג תחזוקה', fields: [f('sub', 'choice', 'סוג תחזוקה', { o: ['תקלות', 'הרחבות'] })] });
+  if (uni || S.sub === 'תקלות') {
+    const acts = S.acts || [];
+    a.push(
+      { title: 'פרטי תקלה', fields: [...(uni ? [] : [f('tk', 'num', 'מספר טיקט')]), f('ft', 'choice', 'סוג תקלה', { o: ['תקלת עוצמות', 'Optical issue'] })] },
+      { title: 'פעולות לביצוע', fields: [
+        f('acts', 'multi', 'בחירת פעולות (ניתן לבחור כמה)', { o: uni ? ['תיקון בארונית', 'החלפת מפצל', 'פתיחת קלוז׳רים'] : ['תיקון בארונית', 'החלפת מפצל', 'החלפת Pigtail', 'פתיחת קלוז׳רים'] }),
+        f('fCab', 'num', 'מספר ארונית', { show: has('תיקון בארונית') }),
+        f('fFus', 'num', 'כמות היתוכים', { show: has('תיקון בארונית') }),
+        f('fcl', 'choice', 'מיקום ארונית', { o: ['חיצוני', 'פנימי'], show: has('תיקון בארונית') }),
+        f('fext', 'choice', 'מיקום חיצוני', { o: ['פילר', 'עמוד', 'חזית', 'עורף', 'אחר'], show: () => has('תיקון בארונית')() && S.fcl === 'חיצוני' }),
+        f('fPole', 'num', 'מספר עמוד', { show: () => has('תיקון בארונית')() && S.fcl === 'חיצוני' && S.fext === 'עמוד' }),
+        f('fextO', 'text', 'פירוט', { opt: 1, show: () => has('תיקון בארונית')() && S.fcl === 'חיצוני' && S.fext === 'אחר' }),
+        f('aCab', 'choice', 'תיקון בארונית – הפעלה', { o: ACT_YN, show: has('תיקון בארונית') }),
+        f('fSp', 'choice', 'סוג מפצל', { o: SP, show: has('החלפת מפצל') }),
+        f('aSpl', 'choice', 'החלפת מפצל – הפעלה', { o: ACT_YN, show: has('החלפת מפצל') }),
+        f('aPig', 'choice', 'החלפת Pigtail – הפעלה', { o: ACT_YN, show: has('החלפת Pigtail') }),
+        f('nK', 'count', 'כמות קלוז׳רים שנפתחו', { show: has('פתיחת קלוז׳רים') }),
+        f('cls', 'rows', 'קלוז׳ר', { n: 'nK', show: has('פתיחת קלוז׳רים'), cols: [f('n', 'num', 'מספר קלוז׳ר'), f('fus', 'num', 'כמות היתוכים')] })
+      ] }
+    );
+    if (acts.includes('תיקון בארונית')) a.push(actPhotoStep('תיקון בארונית', 'aCab', 'pc'));
+    if (acts.includes('החלפת מפצל')) a.push(actPhotoStep('החלפת מפצל', 'aSpl', 'ps'));
+    if (!uni && acts.includes('החלפת Pigtail')) a.push(actPhotoStep('החלפת Pigtail', 'aPig', 'pp'));
+    if (acts.includes('פתיחת קלוז׳רים')) a.push({
+      title: 'תמונות – פתיחת קלוז׳רים',
+      fields: PHG('pk', uni ? [...CL_PH, 'צילום מדבקת מספר UNIGAEA'] : CL_PH)
+    });
+    a.push(NOTES);
+  }
   if (S.sub === 'הרחבות') a.push(
     { title: 'פרטי הרחבה', fields: [f('tk', 'num', 'מספר טיקט'), f('ne', 'count', 'כמות מפצלים קיימים לפני הרחבה'), f('ex', 'rows', 'מפצל קיים', { n: 'ne', cols: [f('t', 'choice', 'סוג מפצל', { o: SP })] }), f('nsp', 'choice', 'סוג מפצל שנוסף', { o: SP })] },
     { title: 'פתיחת ארונית', fields: [f('ic', 'choice', 'פתיחת ארונית', { o: ['כולל', 'לא כולל'] }), f('nCab', 'count', 'כמות ארוניות שנפתחו', { show: () => S.ic === 'כולל' }), f('cabs', 'rows', 'ארונית', { n: 'nCab', show: () => S.ic === 'כולל', cols: [f('n', 'num', 'מספר ארונית'), f('fus', 'num', 'כמות היתוכים')] })] },
     { title: 'פתיחת קלוז׳רים', fields: [f('ik', 'choice', 'פתיחת קלוז׳רים', { o: ['כולל', 'לא כולל'] }), f('nK2', 'count', 'כמות קלוז׳רים שנפתחו', { show: () => S.ik === 'כולל' }), f('cls2', 'rows', 'קלוז׳ר', { n: 'nK2', show: () => S.ik === 'כולל', cols: [f('i', 'choice', 'תשתית', { o: ['גוב', 'עמוד'] }), f('n', 'num', r => 'מספר ' + (r.i || 'גוב/עמוד'), { show: r => r.i }), f('fus', 'num', 'כמות היתוכים')] })] },
-    { title: 'תמונות וקבצים', fields: PH(['תמונות'], 1) },
+    { title: 'תמונות וקבצים', fields: PH(['תמונות']) },
     NOTES
   );
   return a;
 };
 
-const steps = () => [
-  { title: 'פרטים ראשוניים', fields: [f('contractor', 'text', 'קבלן מבצע'), f('date', 'date', 'תאריך ביצוע'), f('project', 'text', 'שם פרויקט'), f('city', 'text', 'עיר'), f('address', 'text', 'כתובת')] },
+// התאמת בחירות כשמחליפים חברה (UNIGAEA: "לקוח עסקי" במקום "הקמות", בלי "הפעלות" ובלי Pigtail)
+const normalizeS = () => {
+  if (S.acts && S.acts.includes('החלפת פיקטל')) S.acts = S.acts.map(x => x === 'החלפת פיקטל' ? 'החלפת Pigtail' : x);
+  if (isUni()) {
+    if (S.wk === 'הקמות') S.wk = 'לקוח עסקי';
+    if (S.wk === 'הפעלות') delete S.wk;
+    if (S.wk === 'תחזוקה') S.sub = 'תקלות';
+    if (S.acts && S.acts.includes('החלפת Pigtail')) S.acts = S.acts.filter(x => x !== 'החלפת Pigtail');
+  } else if (S.wk === 'לקוח עסקי') S.wk = 'הקמות';
+};
+
+const steps = () => {
+  normalizeS();
+  const uni = isUni(), build = S.wk === 'הקמות' || S.wk === 'לקוח עסקי';
+  return [
+  { title: 'פרטים ראשוניים', fields: [f('contractor', 'text', 'קבלן מבצע'), f('date', 'date', 'תאריך ביצוע'), f('project', 'text', 'שם פרויקט'), f('city', 'city', 'עיר'), f('address', 'text', 'כתובת')] },
   { title: 'בחירת חברה', fields: [f('co', 'choice', 'חברה', { o: ['IBC', 'HOT', 'UNIGAEA', 'RIMON'] })] },
-  { title: 'סוג עבודה', fields: [f('wk', 'choice', 'סוג עבודה', { o: ['הקמות', 'תחזוקה', 'ציר הזנה'] })] },
-  ...(S.wk === 'הקמות' ? [{ title: 'הקמות', fields: [f('ks', 'choice', 'מה הוקם?', { o: ['קלוז׳ר', 'ארונית', 'התקנת פנל'] })] }, ...(S.ks === 'קלוז׳ר' ? CL() : S.ks === 'ארונית' ? CAB() : S.ks === 'התקנת פנל' ? PNL() : [])] : S.wk === 'תחזוקה' ? MT() : S.wk === 'ציר הזנה' ? CL() : [])
-];
+  { title: 'סוג עבודה', fields: [f('wk', 'choice', 'סוג עבודה', { o: uni ? ['לקוח עסקי', 'תחזוקה', 'ציר הזנה'] : ['הקמות', 'תחזוקה', 'ציר הזנה', 'הפעלות'] })] },
+  ...(build ? [{ title: S.wk, fields: [f('ks', 'choice', 'מה הוקם?', { o: ['קלוז׳ר', 'ארונית', 'התקנת פנל'] })] }, ...(S.ks === 'קלוז׳ר' ? CL() : S.ks === 'ארונית' ? CAB() : S.ks === 'התקנת פנל' ? PNL() : [])] : S.wk === 'תחזוקה' ? MT() : S.wk === 'ציר הזנה' ? CL() : S.wk === 'הפעלות' ? [{ title: 'תמונות הפעלה', fields: PHG('hp', ['תמונה עם צב״ד', 'תמונה עם דמוקס', 'תמונה סיום הפעלה']) }, NOTES] : [])
+  ];
+};
+
+
+/* ===== יישובים: השלמה אוטומטית (datalist) + אזהרה רכה על שם שלא ברשימה ===== */
+const CITY_LIST = ["ירושלים","תל אביב","תל אביב יפו","יפו","חיפה","ראשון לציון","פתח תקווה","אשדוד","נתניה","באר שבע","בני ברק","חולון","רמת גן","בת ים","רחובות","אשקלון","הרצליה","כפר סבא","חדרה","מודיעין מכבים רעות","מודיעין","נס ציונה","לוד","רמלה","רעננה","רמת השרון","גבעתיים","הוד השרון","קריית אתא","קריית גת","קריית מלאכי","קריית שמונה","קריית ביאליק","קריית מוצקין","קריית ים","קריית אונו","קריית עקרון","קריית טבעון","נהריה","עכו","כרמיאל","נצרת","נצרת עילית","נוף הגליל","טבריה","צפת","עפולה","אילת","דימונה","ערד","אופקים","נתיבות","שדרות","יבנה","גדרה","אור יהודה","אור עקיבא","יהוד מונוסון","יהוד","בית שמש","מעלה אדומים","אריאל","ביתר עילית","מודיעין עילית","בית שאן","מגדל העמק","יקנעם עילית","יקנעם","טירת כרמל","נשר","מעלות תרשיחא","שלומי","קצרין","ראש העין","ראש פינה","אבן יהודה","אבו גוש","אבו סנאן","אום אל פחם","אום אל קוטוף","אזור","אלעד","אלפי מנשה","אלקנה","אפרת","אכסל","אעבלין","אשכול","באר יעקב","באקה אל גרביה","בית אל","בית אריה","בית דגן","בית ג׳ן","בית חנינא","בנימינה גבעת עדה","בנימינה","בסמת טבעון","בסמה","בועיינה נוג׳ידאת","בוקעאתא","בענה","בני עי״ש","בני שמעון","בקעת הירדן","ג׳דיידה מכר","ג׳ולס","ג׳סר א זרקא","ג׳ת","גבעת זאב","גבעת שמואל","גן יבנה","גני תקווה","דאלית אל כרמל","דבוריה","דייר אל אסד","דייר חנא","הר אדר","זכרון יעקב","זמר","חבל מודיעין","חורה","חורפיש","חצור הגלילית","חריש","טורעאן","טייבה","טירה","טמרה","יאנוח ג׳ת","יבנאל","יסוד המעלה","יפיע","ירכא","ירוחם","כאבול","כוכב יאיר","כוכב יעקב","כסיפה","כסרא סמיע","כעביה טבאש חג׳אג׳רה","כפר ברא","כפר חב״ד","כפר יאסיף","כפר יונה","כפר כנא","כפר מנדא","כפר קאסם","כפר קרע","כפר תבור","כפר ורדים","להבים","לפיד","לקיה","מבשרת ציון","מבואות יריחו","מג׳דל שמס","מגאר","מזכרת בתיה","מזרעה","מטולה","מיתר","מסעדה","מעיליא","מעלה עירון","מעלה אפרים","מצפה רמון","מרום הגליל","מבוא ביתר","משהד","משגב","נאעורה","נחף","נוף איילון","סאג׳ור","סאסא","סח׳נין","ספסופה","עומר","עיילבון","עילוט","עין מאהל","עין קניה","עספיא","עראבה","ערערה","ערערה בנגב","עתלית","פוריידיס","פסוטה","פקיעין","פרדס חנה כרכור","פרדסיה","צור הדסה","צור יצחק","צורן קדימה","קדימה צורן","קדומים","קלנסווה","קרני שומרון","ראמה","רהט","ריינה","רכסים","רמת ישי","שגב שלום","שדות נגב","שדות דן","שוהם","שבלי אום אל גנם","שעב","שפרעם","שער הנגב","תל שבע","תל מונד","תראבין א צאנע","עין השופט","עין חרוד","אבן שמואל","אביחיל","אביגדור","אדרת","אחיעזר","אליכין","אלישמע","אמירים","אשתאול","בארות יצחק","בית חנן","בית עובד","בית עזרא","בית ברל","ברקת","גאליה","גבעת ברנר","גבעת חיים","גדעונה","גבע","גינוסר","גנות","דגניה","דליה","חולתה","חניתה","טירת צבי","יגור","יד מרדכי","כפר גלעדי","כפר סילבר","כפר מימון","מגדל","מגן שאול","מעגן מיכאל","מרחביה","משמר העמק","נחשולים","נחשון","נס הרים","נצר סרני","נתיב הל״ה","עין גדי","עין גב","עין החורש","עינת","פלמחים","צרעה","קבוצת יבנה","קיסריה","רמות השבים","שדה ורבורג","שדה בוקר","שדה אליהו","שדה יעקב","שפיים","שריד","תקומה","אור הנר","אלון שבות","גוש עציון","כפר אדומים","מעלה מכמש","נוקדים","תקוע","ביתר","אלון מורה","איתמר","ברכה","הר ברכה","יצהר","עלי","שילה","פסגות","עופרה","מעלה לבונה","אורנית","מעלה שומרון","קרית ארבע","קריית ארבע","יקיר","ניצני עוז","נירית","נחלים","סביון","סבייון","ג׳לג׳וליה","ג׳לגוליה","מגדל עוז","אשל הנשיא","באר טוביה","בית קמה","גבעת ח״ן","גן שורק","גן שלמה","חוות יאיר","טירת יהודה","כפר ביאליק","כפר ביל״ו","כפר הנגיד","כפר נטר","מצליח","מישר","משמר השבעה","נטעים","ניר צבי","עיינות","פארן","קדרון","קרית עקרון","שדמות","שעלבים","תימורים","תלמי יפה","תלמי אלעזר","נהלל","נחלת יהודה","נווה ירק","נווה אפעל","עין שריג","פתחיה","רמות מאיר","בית זית","הר גילה","גילה","תלפיות","פסגת זאב","נווה יעקב","רמות","רמת אשכול","גבעת שאול","הר חומה","קרית אונו","כרמל","עין כרמל","עין הוד","עין חוד","עין עירון","חוף הכרמל","נווה שלום","רמת הכובש","רמת רחל","רמת דוד","שער אפרים","שער העמקים","שדמות דבורה"];
+const normCity = t => String(t || '').replace(/[׳'’`"״]/g, '').replace(/[-–—־]/g, ' ').replace(/קריית/g, 'קרית').replace(/\s+/g, ' ').trim();
+const CITY_SET = new Set(CITY_LIST.map(normCity));
+(function () {
+  const dl = document.createElement('datalist'); dl.id = 'cities-dl';
+  [...new Set(CITY_LIST)].sort((a, b) => a.localeCompare(b, 'he')).forEach(c => { const o = document.createElement('option'); o.value = c; dl.append(o); });
+  document.body.append(dl);
+})();
+// מחזיר false אם הטכנאי בחר לתקן את שם היישוב; אחרת מאפשר להמשיך (גם עם שם שלא ברשימה, אחרי אישור)
+function cityOk(st) {
+  if (!st.fields.some(x => x.t === 'city') || !S.city) return true;
+  const c = normCity(S.city);
+  if (CITY_SET.has(c) || S.cityOk === c) return true;
+  if (!confirm('השם שהוקלד (' + S.city.trim() + ') אינו ברשימת היישובים הרשמית.\nהאם להמשיך בכל זאת?')) return false;
+  S.cityOk = c;
+  return true;
+}
 
 const vis = (x, o) => !x.show || x.show(o);
 
@@ -1526,7 +1599,8 @@ function fld(x, o) {
   } else {
     const ip = h(x.t === 'area' ? 'textarea' : 'input', {
       type: x.t === 'date' ? 'date' : 'text',
-      placeholder: x.t === 'area' ? 'הוסף הערות כאן...' : 'הזן ' + lab(x, o),
+      placeholder: x.t === 'area' ? 'הוסף הערות כאן...' : x.t === 'city' ? 'התחל להקליד שם יישוב…' : 'הזן ' + lab(x, o),
+      ...(x.t === 'city' ? { list: 'cities-dl', autocomplete: 'off' } : {}),
       ...(x.t === 'num' ? { inputmode: 'numeric', pattern: '[0-9]*' } : {})
     });
     ip.value = o[x.k] || '';
@@ -1596,7 +1670,7 @@ const SB_URL = 'https://oisozmbfaebtqicleufm.supabase.co';
 const SB_KEY = 'sb_publishable_8F8GsbT_3oCguIchXRwe0A_zATL1KWA';
 const AUTH_KEY = 'fa_session';
 const getSess = () => { try { return JSON.parse(localStorage.getItem(AUTH_KEY) || 'null'); } catch (e) { return null; } };
-const setSess = v => { try { v ? localStorage.setItem(AUTH_KEY, JSON.stringify(v)) : localStorage.removeItem(AUTH_KEY); } catch (e) {} };
+const setSess = v => { try { v ? localStorage.setItem(AUTH_KEY, JSON.stringify(v)) : localStorage.removeItem(AUTH_KEY); if (v && v.email) localStorage.setItem('fa_email', v.email); } catch (e) {} };
 
 async function authToken() {
   let sess = getSess();
@@ -1645,6 +1719,7 @@ function showLogin(msg) {
     '<button type="button" id="fa-fg" style="background:none;border:0;color:var(--ac,#007AFF);font-size:15px;cursor:pointer;padding:8px">שכחתי סיסמה</button></form>';
   document.body.appendChild(d);
   const err = d.querySelector('#fa-err'); if (msg) err.textContent = msg;
+  try { const em0 = localStorage.getItem('fa_email'); if (em0) { d.querySelector('#fa-em').value = em0; d.querySelector('#fa-pw').focus(); } } catch (x) {}
   d.querySelector('#fa-fg').onclick = async () => {
     const em = d.querySelector('#fa-em').value.trim();
     if (!em) { err.style.color = ''; err.textContent = 'יש להזין קודם את האימייל'; return; }
@@ -1667,24 +1742,54 @@ function showLogin(msg) {
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { err.textContent = r.status === 400 ? 'אימייל או סיסמה שגויים' : (j.msg || j.error_description || 'ההתחברות נכשלה'); b.disabled = false; return; }
       setSess({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600), email: (j.user && j.user.email) || '' });
-      await loadProfile();
-      d.remove(); draw();
+      if (!(await loadProfile())) { try { localStorage.removeItem('fa_email'); } catch (x) {} err.textContent = DENY_MSG; b.disabled = false; return; }
+      try { localStorage.setItem('fa_email', d.querySelector('#fa-em').value.trim()); } catch (x) {}
+      touchSeen();
+      d.remove(); draw(); checkApprovals();
     } catch (e) { err.textContent = 'אין חיבור לאינטרנט – נדרשת קליטה להתחברות הראשונה'; b.disabled = false; }
   };
 }
 // שם הקבלן מהפרופיל של המשתמש (נקבע במסך "משתמשים" בדשבורד) – למילוי אוטומטי בטופס
+const DENY_MSG = 'לחשבון זה אין הרשאת כניסה לאפליקציה. פנה למנהל המערכת.';
+// מחזיר false אם למשתמש אין הרשאה (מנהל / קבלן בלבד); בעיות רשת לא חוסמות
 async function loadProfile() {
   try {
     const tok = await authToken(), cur = getSess();
-    if (!cur || tok === SB_KEY) return;
+    if (!cur || tok === SB_KEY) return true;
     const sub = JSON.parse(atob(tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub;
-    const r = await fetch(SB_URL + '/rest/v1/profiles?select=contractor_name&id=eq.' + encodeURIComponent(sub), { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok } });
-    if (!r.ok) return;
+    const r = await fetch(SB_URL + '/rest/v1/profiles?select=contractor_name,role&id=eq.' + encodeURIComponent(sub), { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok } });
+    if (!r.ok) return true;
     const j = await r.json();
+    const role = j[0] && j[0].role;
+    if (!['admin', 'manager', 'contractor'].includes(role)) { setSess(null); return false; }
+    cur.role = role;
     cur.contractor = (j[0] && j[0].contractor_name) || '';
     setSess(cur);
   } catch (e) {}
+  return true;
 }
+
+/* ===== התנתקות אוטומטית: אחרי 3 שעות ללא שימוש נדרשים שם משתמש וסיסמה מחדש ===== */
+const IDLE_LOGOUT_MS = 3 * 60 * 60 * 1000;
+const SEEN_KEY = 'fa_seen';
+const touchSeen = () => { try { if (getSess()) localStorage.setItem(SEEN_KEY, String(Date.now())); } catch (e) {} };
+let _lastAct = 0;
+const onAct = () => { const n = Date.now(); if (n - _lastAct > 5000) { _lastAct = n; touchSeen(); } };
+['pointerdown', 'keydown', 'touchstart', 'scroll', 'input'].forEach(ev => addEventListener(ev, onAct, { passive: true, capture: true }));
+function idleCheck() {
+  if (!REQUIRE_LOGIN || !getSess()) return false;
+  let seen = 0; try { seen = +localStorage.getItem(SEEN_KEY) || 0; } catch (e) {}
+  if (!seen) { touchSeen(); return false; }
+  if (Date.now() - seen > IDLE_LOGOUT_MS) {
+    setSess(null);
+    try { localStorage.removeItem(SEEN_KEY); } catch (e) {}
+    showLogin('עברו 3 שעות ללא שימוש – יש להתחבר מחדש עם שם משתמש וסיסמה');
+    return true;
+  }
+  return false;
+}
+setInterval(idleCheck, 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { if (!idleCheck()) checkApprovals(); } });
 // חזרה מקישור "שכחתי סיסמה": מסך קביעת סיסמה חדשה
 function showReset(p) {
   showLogin();
@@ -1705,14 +1810,15 @@ function showReset(p) {
       if (!r.ok) { err.textContent = j.msg || j.error_description || 'קביעת הסיסמה נכשלה – ייתכן שהקישור פג תוקף'; b.disabled = false; return; }
       setSess({ access_token: at, refresh_token: p.get('refresh_token') || '', expires_at: Math.floor(Date.now() / 1000) + (+p.get('expires_in') || 3600), email: j.email || '' });
       try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
-      await loadProfile(); d.remove(); draw();
+      if (!(await loadProfile())) { err.textContent = DENY_MSG; b.disabled = false; return; }
+      touchSeen(); d.remove(); draw();
     } catch (e) { err.textContent = 'אין חיבור לאינטרנט'; b.disabled = false; }
   };
 }
 const recParams = (() => { try { const q = new URLSearchParams(location.hash.slice(1)); return q.get('type') === 'recovery' && q.get('access_token') ? q : null; } catch (e) { return null; } })();
 if (recParams) setTimeout(() => showReset(recParams), 0);
 else if (REQUIRE_LOGIN && !getSess()) setTimeout(() => showLogin(), 0);
-else if (getSess()) loadProfile();
+else if (getSess()) setTimeout(async () => { if (idleCheck()) return; touchSeen(); if (!(await loadProfile())) showLogin(DENY_MSG); }, 0);
 
 /* ===== שמירה בשם (בחירת נתיב) – כרום / אדג׳ במחשב; בשאר המכשירים – הורדה רגילה ===== */
 const canPick = typeof window.showSaveFilePicker === 'function';
@@ -1772,16 +1878,29 @@ async function uploadReportPhotos(reportId, ph, supabaseBaseUrl, anonKey) {
   return uploadedPhotos;
 }
 
-async function saveWorkRecord(out, ph) {
+let savePromise = null;
+function saveWorkRecord(out, ph) {
+  if (savePromise) return savePromise;                       // לחיצות כפולות – מחכים לשמירה שכבר רצה
+  savePromise = _saveWorkRecord(out, ph).finally(() => { savePromise = null; });
+  return savePromise;
+}
+const strHash = t => { let a = 5381, b = 52711; for (let k = 0; k < t.length; k++) { const c = t.charCodeAt(k); a = (a * 33) ^ c; b = (b * 33) ^ c; } return (a >>> 0).toString(36) + (b >>> 0).toString(36) + t.length; };
+
+async function _saveWorkRecord(out, ph) {
   const nowStr = new Date().toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' });
   const id = editingId || (saved && saved.id) || ('R-' + Date.now().toString(36).toUpperCase());
+  editingId = id;   // המזהה נקבע מיד – שמירה חוזרת לא תיצור דיווח נוסף
   const existingIdx = savedWorks.findIndex(w => w.id === id);
   const createdAt = existingIdx >= 0 ? savedWorks[existingIdx].createdAt : nowStr;
   const photoCount = ph.reduce((sum, [, arr]) => sum + arr.length, 0);
 
-  const gps = await getGPSLocation();
+  const sig = strHash(JSON.stringify(S));
+  const prev = existingIdx >= 0 ? savedWorks[existingIdx] : null;
+  const unchanged = !!(prev && prev.sig === sig && prev.sent);   // כבר נשלח ולא השתנה – לא שולחים שוב
+  let sent = unchanged;
+  const gps = unchanged ? (prev.gps || null) : await getGPSLocation();
 
-  try {
+  if (!unchanged) try {
     const SUPABASE_BASE_URL = 'https://oisozmbfaebtqicleufm.supabase.co';
     const SUPABASE_URL = `${SUPABASE_BASE_URL}/rest/v1/reports`;
     const SUPABASE_ANON_KEY = 'sb_publishable_8F8GsbT_3oCguIchXRwe0A_zATL1KWA';
@@ -1824,6 +1943,7 @@ async function saveWorkRecord(out, ph) {
     }
 
     if (supResponse.ok) {
+      sent = uploadedPhotos.length >= photoCount;
       console.log('דיווח ותמונות נשלחו בהצלחה ל-Supabase!');
     } else {
       console.error('שגיאה בשליחה ל-Supabase:', await supResponse.text());
@@ -1834,7 +1954,7 @@ async function saveWorkRecord(out, ph) {
 
   const record = {
     id, createdAt, updatedAt: nowStr, ts: Date.now(),
-    data: JSON.parse(JSON.stringify(S)), lines: out, photoCount, gps,
+    data: JSON.parse(JSON.stringify(S)), lines: out, photoCount, gps, sig, sent,
     meta: {
       contractor: S.contractor || '', date: S.date || '',
       project: S.project || 'עבודה ללא שם', city: S.city || '',
@@ -1870,9 +1990,22 @@ async function saveWorkRecord(out, ph) {
   try { localStorage.removeItem('draft'); } catch (e) {}
   draft = null;
 
-  toast('העבודה נשמרה באפליקציה ונשלחה לאתר הניהול');
+  toast(sent ? 'העבודה נשמרה באפליקציה ונשלחה לאתר הניהול' : 'העבודה נשמרה באפליקציה. השליחה לאתר לא הושלמה – לחץ שוב על השמירה כשיש קליטה');
+  try { navigator.vibrate && navigator.vibrate(40); } catch (e) {}
   draw();
   return true;
+}
+
+async function saveBtn(e, out, ph) {
+  const b = e.currentTarget;
+  if (b.disabled) return;
+  const orig = [...b.childNodes];
+  b.disabled = true; b.classList.add('saving');
+  const sp = document.createElement('span'); sp.className = 'spin';
+  b.replaceChildren(sp, 'שומר…');
+  let ok = false;
+  try { ok = await saveWorkRecord(out, ph); } catch (x) { toast('שגיאה בשמירה: ' + ((x && x.message) || x)); }
+  if (!ok && b.isConnected) { b.disabled = false; b.classList.remove('saving'); b.replaceChildren(...orig); }
 }
 
 function summary() {
@@ -1952,7 +2085,7 @@ function summary() {
     ) : null,
     ...body(),
     h('div', { cls: 'actions-stack' },
-      h('button', { cls: 'btn ok', onclick: () => saveWorkRecord(out, ph) }, svgIcon(ICONS.check, 19), saved ? 'עדכון העבודה השמורה' : 'שמירת עבודה באפליקציה'),
+      h('button', { cls: 'btn ok', onclick: e => saveBtn(e, out, ph) }, svgIcon(ICONS.check, 19), saved ? 'עדכון העבודה השמורה' : 'שמירת עבודה באפליקציה'),
       h('button', { cls: 'btn', onclick: e => busy(e, sharePdf) }, svgIcon(ICONS.share, 19), 'שיתוף PDF (עם תמונות)'),
       h('button', { cls: 'btn sec', onclick: e => busy(e, savePdf) }, svgIcon(ICONS.dl, 19), 'הורדת PDF למכשיר'),
       canPick ? h('button', { cls: 'btn sec', onclick: e => busy(e, savePdfAs) }, svgIcon(ICONS.folder, 19), 'שמירה בשם… (בחירת נתיב)') : null,
@@ -1966,7 +2099,7 @@ function accountRow() {
   if (!REQUIRE_LOGIN || !sess) return h('div', {});
   return h('div', { cls: 'backup-row', style: 'margin-top:0' },
     h('div', { cls: 'sub-muted', style: 'margin-bottom:8px' }, 'מחובר: ' + (sess.email || '')),
-    h('button', { type: 'button', cls: 'btn ghost', onclick: () => { if (confirm('להתנתק ולהחליף משתמש?')) { setSess(null); showLogin(); } } }, 'החלפת משתמש')
+    h('button', { type: 'button', cls: 'btn ghost', onclick: () => { if (confirm('להתנתק ולהחליף משתמש?')) { setSess(null); try { localStorage.removeItem('fa_email'); } catch (x) {} showLogin(); } } }, 'החלפת משתמש')
   );
 }
 
@@ -2121,6 +2254,7 @@ function savedWorkDetail(w) {
       h('h2', {}, (w.meta && w.meta.project) || 'פרטי עבודה שמורה'),
       h('div', { cls: 'step-sub' }, 'מזהה ' + w.id + ' · נשמר ב-' + (w.updatedAt || w.createdAt))
     ),
+    apprMap[w.id] && apprMap[w.id].s ? h('div', { cls: 'card' }, h('div', { cls: 'lb' }, apprMap[w.id].s === 'approved' ? '✓ אושר על ידי המנהל' : '✕ לא אושר – יש לתקן'), apprMap[w.id].n ? h('div', {}, apprMap[w.id].n) : null) : null,
     h('div', { cls: 'card' }, out.map(([a, b]) => h('div', { cls: 'ln' }, h('span', {}, a), h('span', {}, String(b))))),
     ...ph.map(([t, a]) => h('div', { cls: 'card' },
       h('div', { cls: 'lb' }, t),
@@ -2200,6 +2334,7 @@ function savedWorksSection() {
         },
           h('div', { cls: 'wc-top' },
             m.co ? h('span', { cls: 'co-tag' }, m.co) : h('span', { cls: 'co-tag' }, 'עבודה'),
+            apprTag(w.id),
             h('span', { cls: 'wc-date' }, m.date || w.createdAt || '')
           ),
           h('div', { cls: 'wc-title' }, title),
@@ -2222,6 +2357,65 @@ function savedWorksSection() {
     )
   ];
 }
+
+
+/* ===== הודעות אישור / אי-אישור מהמנהל (קופצות אצל הקבלן ששלח את העבודה) ===== */
+const APPR_SEEN = 'fa_appr_seen', APPR_MAP = 'fa_appr_map';
+const jget = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || 'null') || d; } catch (e) { return d; } };
+const jset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+let apprMap = jget(APPR_MAP, {});
+const apprTag = id => {
+  const a = apprMap[id];
+  return a && a.s ? h('span', { cls: 'appr-tag ' + (a.s === 'approved' ? 'ok' : 'bad') }, a.s === 'approved' ? '✓ אושר' : '✕ לא אושר') : null;
+};
+let apprBusy = false;
+async function checkApprovals() {
+  if (apprBusy || !getSess() || !savedWorks.length || navigator.onLine === false) return;
+  apprBusy = true;
+  try {
+    const ids = savedWorks.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 60).map(w => w.id).filter(x => /^[\w-]+$/.test(x));
+    if (!ids.length) return;
+    const tok = await authToken();
+    if (tok === SB_KEY) return;
+    const r = await fetch(SB_URL + '/rest/v1/reports?select=report_id,project,approval_status,approval_note,approved_at&approval_status=not.is.null&report_id=in.(' + ids.join(',') + ')',
+      { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok } });
+    if (!r.ok) return;
+    const rows = await r.json(), seen = jget(APPR_SEEN, {}), fresh = [];
+    let changed = false;
+    rows.forEach(x => {
+      if (x.approval_status !== 'approved' && x.approval_status !== 'rejected') return;
+      const key = x.approval_status + '|' + (x.approved_at || '') + '|' + (x.approval_note || '');
+      const cur = apprMap[x.report_id];
+      if (!cur || cur.s !== x.approval_status || cur.n !== (x.approval_note || '')) { apprMap[x.report_id] = { s: x.approval_status, n: x.approval_note || '' }; changed = true; }
+      if (seen[x.report_id] !== key) fresh.push({ ...x, key });
+    });
+    if (changed) { jset(APPR_MAP, apprMap); if (i < 0 && !viewingWork && !document.getElementById('appr-pop')) draw(true); }
+    if (fresh.length && !document.getElementById('appr-pop')) showApprPopup(fresh);
+  } catch (e) {} finally { apprBusy = false; }
+}
+function showApprPopup(list) {
+  const x = list[0];
+  const ok = x.approval_status === 'approved';
+  const done = () => {
+    const seen = jget(APPR_SEEN, {}); seen[x.report_id] = x.key; jset(APPR_SEEN, seen);
+    const el = document.getElementById('appr-pop'); if (el) el.remove();
+    if (list.length > 1) showApprPopup(list.slice(1));
+  };
+  const w = savedWorks.find(q => q.id === x.report_id);
+  const ov = h('div', { id: 'appr-pop', cls: 'modal-overlay', style: 'z-index:99990', dir: 'rtl' },
+    h('div', { cls: 'modal-card' },
+      h('h3', { style: 'color:' + (ok ? 'var(--ok,#34C759)' : 'var(--er,#FF3B30)') }, ok ? '✅ העבודה אושרה' : '❌ העבודה לא אושרה'),
+      h('p', {}, (x.project || (w && w.meta && w.meta.project) || 'עבודה') + ' · מזהה ' + x.report_id),
+      x.approval_note ? h('p', { style: 'font-weight:700;color:var(--tx,#000)' }, (ok ? 'הערת המנהל: ' : 'סיבה / מה לתקן: ') + x.approval_note) : null,
+      list.length > 1 ? h('p', { style: 'font-size:13px' }, 'עוד ' + (list.length - 1) + ' הודעות ממתינות') : null,
+      !ok && w ? h('button', { type: 'button', cls: 'btn ok', style: 'margin-top:12px', onclick: () => { done(); viewingWork = w; pendDelWork = false; try { history.pushState(null, ''); hd++; } catch (e) {} draw(); scrollTo(0, 0); } }, 'פתיחת העבודה') : null,
+      h('button', { type: 'button', cls: 'btn' + (ok || !w ? '' : ' ghost'), style: 'margin-top:10px', onclick: done }, 'הבנתי')
+    )
+  );
+  document.body.append(ov);
+  try { navigator.vibrate && navigator.vibrate([60, 40, 60]); } catch (e) {}
+}
+setInterval(checkApprovals, 120000);
 
 const draw = (preserveFocus = false) => {
   sd();
@@ -2334,6 +2528,7 @@ const draw = (preserveFocus = false) => {
             const o = [];
             need(s.fields, S, o);
             errs = o;
+            if (!o.length && !cityOk(s)) return;
             if (o.length) draw();
             else {
               i++;
@@ -2664,6 +2859,7 @@ Promise.all([idb('get', 'draft'), idb('get', 'saved_works')]).then(([d, works]) 
     } catch (e) {}
   }
   if (i < 0) draw();
+  checkApprovals();
 }).catch(err => {
   console.error('Database initialization failed:', err);
   try {
