@@ -2171,6 +2171,47 @@ function summary() {
   ];
 }
 
+/* ===== התראות Push מהמנהל ===== */
+const VAPID_PUBLIC = 'BLZFe24aj_atpc3Bh7Vf5Q6pPwzBSgqZQh9vfqClulKswQtxCs6WiwY-e7AuPD8tJcElu06MFyjGvD4uHj63oFM';
+const pushSupported = () => ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window) && location.protocol === 'https:';
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const urlB64ToU8 = b => { const p = '='.repeat((4 - b.length % 4) % 4), r = atob((b + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+async function savePushSub(sub) {
+  const k = sub.toJSON().keys || {}, tok = await authToken();
+  if (tok === SB_KEY) return false;
+  const r = await fetch(SB_URL + '/rest/v1/push_subscriptions?on_conflict=endpoint', { method: 'POST',
+    headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ endpoint: sub.endpoint, p256dh: k.p256dh, auth: k.auth }) });
+  return r.ok;
+}
+async function enablePush() {
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { toast('ההתראות נחסמו. אפשר לאשר אותן בהגדרות המכשיר.'); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToU8(VAPID_PUBLIC) });
+    toast((await savePushSub(sub)) ? 'ההתראות הופעלו' : 'ההרשמה לא נשמרה – נסה שוב בחיבור לאינטרנט');
+    if (i < 0) draw(true);
+  } catch (e) { toast('הפעלת ההתראות נכשלה'); }
+}
+// רישום מחדש שקט (אם כבר אושר) – שומר שההרשמה תקפה ומשויכת למשתמש המחובר
+async function refreshPushSub() {
+  try {
+    if (!pushSupported() || Notification.permission !== 'granted' || !getSess() || navigator.onLine === false) return;
+    const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+    if (sub) await savePushSub(sub);
+  } catch (e) {}
+}
+function pushRow() {
+  if (!REQUIRE_LOGIN || !getSess() || !('Notification' in window)) return h('div', {});
+  if (Notification.permission === 'granted' || Notification.permission === 'denied') return h('div', {});
+  if (isIOS() && !isStandalone()) return h('div', { cls: 'backup-row', style: 'margin-top:0' }, h('div', { cls: 'sub-muted' }, 'לקבלת התראות באייפון: שתף ← "הוספה למסך הבית", ופתח את האפליקציה משם.'));
+  if (!pushSupported()) return h('div', {});
+  return h('div', { cls: 'backup-row', style: 'margin-top:0' },
+    h('button', { type: 'button', cls: 'btn ghost', onclick: enablePush }, '🔔 הפעלת התראות מהמנהל'));
+}
+setTimeout(refreshPushSub, 4000);
+
 function accountRow() {
   const sess = getSess();
   if (!REQUIRE_LOGIN || !sess) return h('div', {});
@@ -2614,6 +2655,7 @@ const draw = (preserveFocus = false) => {
           draft ? draftCard() : null
         )
       ),
+      pushRow(),
       ...savedWorksSection(),
       backupRow(),
       accountRow()
