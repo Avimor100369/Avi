@@ -1814,15 +1814,14 @@ function showLogin(msg) {
     '<input id="fa-em" name="username" type="email" inputmode="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="אימייל (שם משתמש)" required>' +
     '<input id="fa-pw" name="password" type="password" autocomplete="current-password" placeholder="סיסמה" required>' +
     '<div class="fa-err" id="fa-err"></div><button class="btn" type="submit" id="fa-go">כניסה</button>' +
-    '<button type="button" id="fa-fg" style="background:none;border:0;color:var(--ac,#007AFF);font-size:15px;cursor:pointer;padding:8px">שכחתי סיסמה (מייל איפוס)</button>' +
-    '<button type="button" id="fa-rq" style="background:none;border:1px solid var(--ac,#007AFF);border-radius:12px;color:var(--ac,#007AFF);font-size:15px;cursor:pointer;padding:10px">שלח למנהל בקשה לאיפוס סיסמה</button></form>';
+    '<button type="button" id="fa-rq" style="background:none;border:1px solid var(--ac,#007AFF);border-radius:12px;color:var(--ac,#007AFF);font-size:15px;cursor:pointer;padding:10px">שכחתי סיסמה – שלח בקשה למנהל</button></form>';
   document.body.appendChild(d);
   const err = d.querySelector('#fa-err'); if (msg) err.textContent = msg;
   try { const em0 = localStorage.getItem('fa_email'); if (em0) { d.querySelector('#fa-em').value = em0; d.querySelector('#fa-pw').focus(); } } catch (x) {}
   d.querySelector('#fa-rq').onclick = async () => {
     const err = d.querySelector('#fa-err'), who = d.querySelector('#fa-em').value.trim(), btn = d.querySelector('#fa-rq');
     err.style.color = '';
-    if (who.length < 3) { err.textContent = 'הקלד למעלה את האימייל (שם המשתמש) שלך ואז לחץ שוב'; return; }
+    if (who.length < 3) { err.textContent = 'הקלד למעלה את האימייל (שם המשתמש) שלך ואז לחץ שוב על הכפתור'; return; }
     btn.disabled = true;
     try {
       const r = await fetch(SB_URL + '/rest/v1/password_requests', { method: 'POST',
@@ -1833,7 +1832,8 @@ function showLogin(msg) {
     } catch (e) { err.textContent = 'אין חיבור לאינטרנט – נסה שוב כשיש קליטה'; }
     btn.disabled = false;
   };
-  d.querySelector('#fa-fg').onclick = async () => {
+  const fgBtn = d.querySelector('#fa-fg');   // כפתור מייל איפוס הוסר – נשארה רק בקשה למנהל
+  if (fgBtn) fgBtn.onclick = async () => {
     const em = d.querySelector('#fa-em').value.trim();
     if (!em) { err.style.color = ''; err.textContent = 'יש להזין קודם את האימייל'; return; }
     try {
