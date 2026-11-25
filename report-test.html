@@ -409,7 +409,7 @@ button, input, textarea, select {
   margin: 0 0 8px 2px;
 }
 .lb .req {
-  color: var(--ac);
+  color: #FF3B30;
   margin-right: 4px;
   font-weight: 700;
 }
@@ -1166,6 +1166,14 @@ input:focus, textarea:focus { box-shadow: 0 0 0 4px var(--ac-soft); }
 .appr-tag { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 99px; }
 .appr-tag.ok { color: var(--ok); background: rgba(52,199,89,.14); }
 .appr-tag.bad { color: var(--er); background: rgba(255,59,48,.12); }
+
+/* ===== עדכון מסך פתיחה / שדות ===== */
+.install-btn { display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 14px; font-weight: 700; color: var(--ac); background: var(--ac-soft); border: 1px solid rgba(0,122,255,.2); border-radius: 99px; padding: 8px 14px; cursor: pointer; }
+.install-btn:active { transform: scale(.97); }
+.hero { padding: 10px 8px 16px; }
+.greet-line { font-size: 20px; font-weight: 700; margin: 4px 0 18px; letter-spacing: -0.01em; }
+.ro-fld { opacity: .8; background: var(--card2, rgba(120,120,128,.12)) !important; cursor: not-allowed; }
+.lock-note { font-size: 12px; color: var(--tx2); margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -1298,9 +1306,15 @@ const PH = a => a.map(l => f('ph:' + l, 'photo', l));
 const PHG = (g, a, show, pre = '') => a.map(l => f('ph:' + g + ':' + l, 'photo', pre + l, show ? { show } : {}));
 const isUni = () => S.co === 'UNIGAEA';
 // מספר ארונית: חובה רק בהוט; בשאר החברות אופציונלי (נקבע לפי החברה שנבחרה ברגע הבדיקה)
-const cabNum = (k, l, x = {}) => ({ ...f(k, 'num', l, x), get opt() { return S.co !== 'HOT'; } });
+// ב-HOT (שלא בתחזוקה) מותר להזין גם מקף (-) במספר הארונית
+const cabNum = (k, l, x = {}) => ({ ...f(k, 'num', l, x), get opt() { return S.co !== 'HOT'; }, get dash() { return S.co === 'HOT' && S.wk !== 'תחזוקה'; }, get ph() { return this.dash ? 'ניתן להזין גם מקף (-)' : ''; } });
+const WK_ACT = 'הפעלה בלבד';
+// תמונות חובה בהפעלה – בכל מקום שבו יש הפעלה. לכל קטגוריה לפחות תמונה אחת, וניתן להוסיף עוד
+const ACT6 = ['בדיקת עוצמות בצב״ד', 'סיום הפעלה מהצב״ד', 'מד אור עם דמוקס', 'ארון פתוח', 'ארון סגור עם מדבקה', 'צילום ארון מרחוק'];
+const ACTPH = (g, show, pre = '') => ACT6.map(l => ({ ...f('ph:' + g + ':' + l, 'photo', pre + l, show ? { show } : {}), grp: 'act' }));
 const CL_PH = ['תמונת קלוז׳ר', 'תמונת מגש היתוכים', 'תמונת סל איסוף', 'צילום כבלים בקלוז׳ר', 'צילום מרחוק של הקלוז׳ר'];
 const NOTES = { title: 'הערות', fields: [f('notes', 'area', 'טקסט חופשי', { opt: 1 })] };
+const NOTES_ACT = { title: 'הערות', fields: [f('notes', 'area', 'טקסט חופשי', { opt: 1, grp: 'act' })] };
 const has = v => () => (S.acts || []).includes(v);
 
 const PNL = () => [
@@ -1318,10 +1332,10 @@ const CL = () => [
 ];
 
 const CAB = () => [
-  { title: 'פרטי ארונית', fields: [cabNum('cab', 'מספר ארונית'), f('cl', 'choice', 'מיקום ארונית', { o: ['חיצוני', 'פנימי'] }), f('ext', 'choice', 'מיקום חיצוני', { o: ['פילר', 'עמוד', 'חזית', 'עורף', 'אחר'], show: () => S.cl === 'חיצוני' }), f('extNum', 'num', 'מספר עמוד', { show: () => S.cl === 'חיצוני' && S.ext === 'עמוד' }), f('extO', 'text', 'פירוט', { show: () => S.cl === 'חיצוני' && S.ext === 'אחר' }), f('it', 'choice', 'סוג מיקום', { o: ['PPC', 'LSB'], show: () => S.cl === 'פנימי' }), f('fl', 'text', 'קומה', { show: () => S.cl === 'פנימי' })] },
+  { title: 'פרטי ארונית', fields: [cabNum('cab', 'מספר ארונית'), f('cl', 'choice', 'מיקום ארונית', { o: ['חיצוני', 'פנימי'] }), f('ext', 'choice', 'מיקום חיצוני', { o: ['פילר', 'עמוד', 'חזית', 'עורף', 'אחר'], show: () => S.cl === 'חיצוני' }), f('extNum', 'num', 'מספר עמוד', { show: () => S.cl === 'חיצוני' && S.ext === 'עמוד' }), f('extPil', 'num', 'מספר פילר', { show: () => S.cl === 'חיצוני' && S.ext === 'פילר' }), f('extO', 'text', 'פירוט', { show: () => S.cl === 'חיצוני' && S.ext === 'אחר' }), f('it', 'choice', 'סוג מיקום', { o: ['PPC', 'LSB'], show: () => S.cl === 'פנימי' }), f('fl', 'text', 'קומה', { show: () => S.cl === 'פנימי' })] },
   { title: 'היתוכים ומפצלים', fields: [f('fus', 'num', 'מספר היתוכים'), f('ns', 'count', 'כמות מפצלים'), f('spl', 'rows', 'מפצל', { n: 'ns', cols: [f('t', 'choice', 'סוג מפצל', { o: [...SP, 'Pigtail'] })] })] },
-  { title: 'הפעלה', fields: [f('act', 'choice', 'הפעלה', { o: ['כולל הפעלה', 'לא כולל הפעלה'] })] },
-  { title: 'תמונות', fields: [...PH(['תמונה מרחוק', 'תמונה מקרוב']), ...PH(['תמונה מהפעלה בצב״ד', 'תמונת מד אור']).map(x => ({ ...x, show: () => S.act === 'כולל הפעלה'  }))] },
+  { title: 'הפעלה', fields: [f('act', 'choice', 'הפעלה', { o: ['כולל הפעלה', 'לא כולל הפעלה'], grp: 'both' })] },
+  { title: 'תמונות', fields: [...PH(['תמונה מרחוק', 'תמונה מקרוב']), ...ACTPH('cab', () => S.act === 'כולל הפעלה')] },
   NOTES
 ];
 
@@ -1331,18 +1345,24 @@ const actPhotoStep = (act, key, g) => ({
   title: 'תמונות – ' + act,
   fields: [
     ...PHG(g, ['תמונה מרחוק', 'תמונה מקרוב'], null, act + ' – '),
-    ...PHG(g, ['תמונה מהפעלה בצב״ד', 'תמונת מד אור'], () => S[key] === 'כולל הפעלה', act + ' – ')
+    ...ACTPH(g, () => S[key] === 'כולל הפעלה', act + ' – ')
   ]
 });
 
 const MT = () => {
   const uni = isUni();
   const a = [];
-  if (!uni) a.push({ title: 'סוג תחזוקה', fields: [f('sub', 'choice', 'סוג תחזוקה', { o: ['תקלות', 'הרחבות'] })] });
-  if (uni || S.sub === 'תקלות') {
+  // סוגי תחזוקה לפי חברה: HOT – תקלות/הרחבות · IBC ו-RIMON – גם העתקות · UNIGAEA – תקלות/העתקות
+  const subO = uni ? ['תקלות', 'העתקות'] : S.co === 'HOT' ? ['תקלות', 'הרחבות'] : ['תקלות', 'הרחבות', 'העתקות'];
+  a.push({ title: 'סוג תחזוקה', fields: [f('sub', 'choice', 'סוג תחזוקה', { o: subO })] });
+  if (S.sub === 'העתקות') a.push(
+    { title: 'העתקות', fields: [f('ks', 'choice', 'מה הועתק?', { o: ['קלוז׳ר', 'ארונית'] })] },
+    ...(S.ks === 'קלוז׳ר' ? CL() : S.ks === 'ארונית' ? CAB() : [])
+  );
+  if (S.sub === 'תקלות') {
     const acts = S.acts || [];
     a.push(
-      { title: 'פרטי תקלה', fields: [...(uni ? [] : [f('tk', 'num', 'מספר טיקט')]), f('ft', 'choice', 'סוג תקלה', { o: ['תקלת עוצמות', 'Optical issue'] })] },
+      { title: 'פרטי תקלה', fields: [...(uni ? [] : [f('tk', 'num', 'מספר טיקט')]), f('ft', 'choice', 'סוג תקלה', { o: uni ? ['תקלת עוצמות'] : ['תקלת עוצמות', 'Optical issue'] })] },
       { title: 'פעולות לביצוע', fields: [
         f('acts', 'multi', 'בחירת פעולות (ניתן לבחור כמה)', { o: uni ? ['תיקון בארונית', 'החלפת מפצל', 'פתיחת קלוז׳רים'] : ['תיקון בארונית', 'החלפת מפצל', 'החלפת Pigtail', 'פתיחת קלוז׳רים'] }),
         cabNum('fCab', 'מספר ארונית', { show: has('תיקון בארונית') }),
@@ -1351,10 +1371,10 @@ const MT = () => {
         f('fext', 'choice', 'מיקום חיצוני', { o: ['פילר', 'עמוד', 'חזית', 'עורף', 'אחר'], show: () => has('תיקון בארונית')() && S.fcl === 'חיצוני' }),
         f('fPole', 'num', 'מספר עמוד', { show: () => has('תיקון בארונית')() && S.fcl === 'חיצוני' && S.fext === 'עמוד' }),
         f('fextO', 'text', 'פירוט', { show: () => has('תיקון בארונית')() && S.fcl === 'חיצוני' && S.fext === 'אחר' }),
-        f('aCab', 'choice', 'תיקון בארונית – הפעלה', { o: ACT_YN, show: has('תיקון בארונית') }),
+        f('aCab', 'choice', 'תיקון בארונית – הפעלה', { o: ACT_YN, show: has('תיקון בארונית'), grp: 'both' }),
         f('fSp', 'choice', 'סוג מפצל', { o: SP, show: has('החלפת מפצל') }),
-        f('aSpl', 'choice', 'החלפת מפצל – הפעלה', { o: ACT_YN, show: has('החלפת מפצל') }),
-        f('aPig', 'choice', 'החלפת Pigtail – הפעלה', { o: ACT_YN, show: has('החלפת Pigtail') }),
+        f('aSpl', 'choice', 'החלפת מפצל – הפעלה', { o: ACT_YN, show: has('החלפת מפצל'), grp: 'both' }),
+        f('aPig', 'choice', 'החלפת Pigtail – הפעלה', { o: ACT_YN, show: has('החלפת Pigtail'), grp: 'both' }),
         f('nK', 'count', 'כמות קלוז׳רים שנפתחו', { show: has('פתיחת קלוז׳רים') }),
         f('cls', 'rows', 'קלוז׳ר', { n: 'nK', show: has('פתיחת קלוז׳רים'), cols: [f('n', 'num', 'מספר קלוז׳ר'), f('fus', 'num', 'כמות היתוכים')] })
       ] }
@@ -1380,14 +1400,20 @@ const MT = () => {
 
 // התאמת בחירות כשמחליפים חברה (UNIGAEA: "לקוח עסקי" במקום "הקמות", בלי "הפעלות" ובלי Pigtail)
 const normalizeS = () => {
+  if (S.wk === 'הפעלות') S.wk = WK_ACT;                        // שינוי שם: "הפעלות" ← "הפעלה בלבד"
+  const lockedCn = (getSess() || {}).contractor;
+  if (lockedCn) S.contractor = lockedCn;                       // שם הקבלן נקבע לפי המשתמש המחובר
+  if (S.wk === 'תחזוקה' && S.sub === 'העתקות' && S.ks === 'התקנת פנל') delete S.ks;
   if (S.acts && S.acts.includes('החלפת פיקטל')) S.acts = S.acts.map(x => x === 'החלפת פיקטל' ? 'החלפת Pigtail' : x);
   if (isUni()) {
     if (S.wk === 'הקמות') S.wk = 'לקוח עסקי';
-    if (S.wk === 'הפעלות') delete S.wk;
+    if (S.wk === WK_ACT) delete S.wk;                          // ביוניגאה אין "הפעלה בלבד"
+    if (S.ft === 'Optical issue') delete S.ft;
     if (S.wk === 'לקוח עסקי' && S.ks === 'התקנת פנל') { S.wk = 'התקנת פנל'; delete S.ks; }
-    if (S.wk === 'תחזוקה') S.sub = 'תקלות';
+    if (S.wk === 'תחזוקה' && S.sub === 'הרחבות') delete S.sub;
     if (S.acts && S.acts.includes('החלפת Pigtail')) S.acts = S.acts.filter(x => x !== 'החלפת Pigtail');
   } else {
+    if (S.wk === 'תחזוקה' && S.co === 'HOT' && S.sub === 'העתקות') delete S.sub;   // ב-HOT אין העתקות
     if (S.wk === 'לקוח עסקי') S.wk = 'הקמות';
     if (S.wk === 'התקנת פנל') { S.wk = 'הקמות'; S.ks = 'התקנת פנל'; }
   }
@@ -1397,10 +1423,10 @@ const steps = () => {
   normalizeS();
   const uni = isUni(), build = S.wk === 'הקמות' || S.wk === 'לקוח עסקי';
   return [
-  { title: 'פרטים ראשוניים', fields: [f('contractor', 'text', 'קבלן מבצע'), f('date', 'date', 'תאריך ביצוע'), f('project', 'text', 'שם פרויקט'), f('city', 'city', 'עיר'), f('address', 'addr', 'כתובת')] },
+  { title: 'פרטים ראשוניים', fields: [f('contractor', 'text', 'קבלן מבצע', { get ro() { return !!(getSess() || {}).contractor; } }), f('date', 'date', 'תאריך ביצוע'), f('project', 'text', 'שם פרויקט'), f('city', 'city', 'עיר'), f('address', 'addr', 'כתובת')] },
   { title: 'בחירת חברה', fields: [f('co', 'choice', 'חברה', { o: ['IBC', 'HOT', 'UNIGAEA', 'RIMON'] })] },
-  { title: 'סוג עבודה', fields: [f('wk', 'choice', 'סוג עבודה', { o: uni ? ['לקוח עסקי', 'התקנת פנל', 'תחזוקה', 'ציר הזנה'] : ['הקמות', 'תחזוקה', 'ציר הזנה', 'הפעלות'] })] },
-  ...(build ? [{ title: S.wk, fields: [f('ks', 'choice', 'מה הוקם?', { o: uni ? ['קלוז׳ר', 'ארונית'] : ['קלוז׳ר', 'ארונית', 'התקנת פנל'] })] }, ...(S.ks === 'קלוז׳ר' ? CL() : S.ks === 'ארונית' ? CAB() : S.ks === 'התקנת פנל' ? PNL() : [])] : S.wk === 'תחזוקה' ? MT() : S.wk === 'ציר הזנה' ? CL() : S.wk === 'התקנת פנל' ? PNL() : S.wk === 'הפעלות' ? [{ title: 'תמונות הפעלה', fields: PHG('hp', ['תמונה עם צב״ד', 'תמונה עם דמוקס', 'תמונה סיום הפעלה', 'תמונת מדבקה עם מספר ארונית', 'תמונת ארון פתוח', 'תמונת ארון מרחוק']) }, NOTES] : [])
+  { title: 'סוג עבודה', fields: [f('wk', 'choice', 'סוג עבודה', { o: uni ? ['לקוח עסקי', 'התקנת פנל', 'תחזוקה', 'ציר הזנה'] : ['הקמות', 'תחזוקה', 'ציר הזנה', WK_ACT] })] },
+  ...(build ? [{ title: S.wk, fields: [f('ks', 'choice', 'מה הוקם?', { o: uni ? ['קלוז׳ר', 'ארונית'] : ['קלוז׳ר', 'ארונית', 'התקנת פנל'] })] }, ...(S.ks === 'קלוז׳ר' ? CL() : S.ks === 'ארונית' ? CAB() : S.ks === 'התקנת פנל' ? PNL() : [])] : S.wk === 'תחזוקה' ? MT() : S.wk === 'ציר הזנה' ? CL() : S.wk === 'התקנת פנל' ? PNL() : S.wk === WK_ACT ? [CAB()[0], { title: 'תמונות הפעלה', fields: ACTPH('hp') }, NOTES_ACT] : [])
   ];
 };
 
@@ -1423,7 +1449,7 @@ function cityOk(st) {
 /* ===== תיבת הצעות (עובדת בכל דפדפן, גם בתוך וואטסאפ): יישובים מרשימה מקומית, כתובות מ-OpenStreetMap ===== */
 (function () {
   const st = document.createElement('style');
-  st.textContent = '.sg-wrap{position:relative}.sg-box{position:absolute;right:0;left:0;top:100%;margin-top:4px;z-index:60;background:var(--card,#fff);border:1px solid var(--sep,rgba(0,0,0,.12));border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-height:260px;overflow:auto}' +
+  st.textContent = '.sg-wrap{position:relative}.sg-box{position:absolute;right:0;left:0;top:100%;margin-top:4px;z-index:60;background:var(--card,#fff);border:1px solid var(--sep,rgba(0,0,0,.12));border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-height:min(260px,40vh);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}' +
     '.sg-it{display:block;width:100%;text-align:right;padding:13px 14px;font-size:16px;background:none;border:0;border-bottom:1px solid var(--sep,rgba(0,0,0,.08));color:var(--tx,#000);font-family:inherit;cursor:pointer}.sg-it:last-child{border-bottom:0}.sg-it:active{background:var(--ac-soft,rgba(0,122,255,.12))}.sg-hint{padding:10px 14px;font-size:13px;color:var(--tx2,#8E8E93)}';
   document.head.append(st);
 })();
@@ -1447,18 +1473,18 @@ function suggestBox(ip, x, o, fv) {
   const hide = () => { box.style.display = 'none'; };
   const pick = v => { ip.value = v; o[x.k] = v; fv.classList.add('on'); const g = ip.closest('.field-group'); if (g) g.classList.remove('miss'); hide(); updSP(); sd(); };
   const render = (items, hint) => {
-    box.replaceChildren(...items.map(v => h('button', { type: 'button', cls: 'sg-it', onpointerdown: e => { e.preventDefault(); pick(v); } }, v)), ...(hint ? [h('div', { cls: 'sg-hint' }, hint)] : []));
+    box.replaceChildren(...items.map(v => h('button', { type: 'button', cls: 'sg-it', onmousedown: e => e.preventDefault(), onclick: () => pick(v) }, v)), ...(hint ? [h('div', { cls: 'sg-hint' }, hint)] : []));
     box.style.display = items.length || hint ? 'block' : 'none';
   };
   const upd = () => {
     const t = ip.value.trim();
     clearTimeout(tm);
     if (x.t === 'city') {
-      if (!t) { hide(); return; }
-      const n = normCity(t);
       const all = [...new Set(CITY_LIST)];
+      if (!t) { render(all); return; }            // שדה ריק: כל הרשימה, עם גלילה
+      const n = normCity(t);
       const pre = all.filter(c => normCity(c).startsWith(n)), sub = all.filter(c => !normCity(c).startsWith(n) && normCity(c).includes(n));
-      render([...pre, ...sub].slice(0, 8));
+      render([...pre, ...sub].slice(0, 80));
     } else {
       if (t.length < 3) { hide(); return; }
       const my = ++tok;
@@ -1504,6 +1530,7 @@ function need(fs, o, out, pre = '') {
     else if (x.t === 'photo') { if (!(v && v.length)) out.push('חסרה תמונה בקטגוריה: ' + L); }
     else if (x.t === 'multi') { if (!(v && v.length)) out.push('יש לבחור לפחות פעולה אחת'); }
     else if (x.t === 'count') { if (v === undefined || v === null || v === '') out.push('יש לבחור ' + L); }
+    else if (v && x.dash && !/\d/.test(v)) out.push('נא להזין מספר ארונית תקין (ספרות, ומקף אם צריך)');
     else if (!v || !String(v).trim()) out.push(x.t === 'choice' ? 'יש לבחור: ' + L : x.t === 'num' ? 'נא להזין מספר: ' + L : 'נא למלא: ' + L);
   }
 }
@@ -1657,16 +1684,17 @@ function fld(x, o) {
   } else {
     const ip = h(x.t === 'area' ? 'textarea' : 'input', {
       type: x.t === 'date' ? 'date' : 'text',
-      placeholder: x.t === 'area' ? 'הוסף הערות כאן...' : x.t === 'city' ? 'התחל להקליד שם יישוב…' : x.t === 'addr' ? 'התחל להקליד רחוב ומספר…' : 'הזן ' + lab(x, o),
+      placeholder: x.ph || '',
       ...(x.t === 'city' || x.t === 'addr' ? { autocomplete: 'off' } : {}),
-      ...(x.t === 'num' ? { inputmode: 'numeric', pattern: '[0-9]*' } : {})
+      ...(x.t === 'num' ? (x.dash ? { inputmode: 'text' } : { inputmode: 'numeric', pattern: '[0-9]*' }) : {})
     });
     ip.value = o[x.k] || '';
+    if (x.ro) { const cn = (getSess() || {}).contractor || ''; ip.value = cn; o[x.k] = cn; ip.readOnly = true; ip.setAttribute('aria-readonly', 'true'); ip.className = 'ro-fld'; }
     const fv = svgIcon(ICONS.check, 14);
     fv.setAttribute('class', 'fv' + (String(o[x.k] || '').trim() ? ' on' : ''));
     if (L.firstChild) L.firstChild.append(fv);
     ip.oninput = () => {
-      if (x.t === 'num') ip.value = ip.value.replace(/\D/g, '');
+      if (x.t === 'num') ip.value = ip.value.replace(x.dash ? /[^\d-]/g : /\D/g, '');
       o[x.k] = ip.value;
       fv.classList.toggle('on', !!ip.value.trim());
       if (ip.value.trim()) { const g = ip.closest('.field-group'); if (g) g.classList.remove('miss'); }
@@ -1689,7 +1717,8 @@ function fld(x, o) {
         } catch (e) { ip.blur(); }
       });
     }
-    b = (x.t === 'city' || x.t === 'addr') ? suggestBox(ip, x, o, fv) : ip;
+    b = (x.t === 'city' || x.t === 'addr') && !x.ro ? suggestBox(ip, x, o, fv) : ip;
+    if (x.ro) b = h('div', {}, ip, h('div', { cls: 'lock-note' }, 'השם נקבע לפי המשתמש המחובר ואי אפשר לשנותו'));
   }
   let miss = false;
   try { miss = errs.length > 0 && !x.opt && isEmptyFld(x, o); } catch (e) {}
@@ -1709,14 +1738,17 @@ function lines(stateObj = S) {
     Object.assign(S, origS);
   }
 
+  // קבוצת מסמך לכל שורה: gen = פרטים כלליים (בשני ה-PDF), cab = ארון, act = הפעלה, both = בשניהם
+  const gmap = new Map();
+  activeSteps.forEach((s, si) => s.fields.forEach(x => gmap.set(x, x.grp || (si < 3 ? 'gen' : 'cab'))));
   (function w(fs, o) {
     for (const x of fs) {
       if (!vis(x, o) || x.t === 'count') continue;
-      const v = o[x.k];
-      if (x.t === 'rows') (v || []).slice(0, stateObj[x.n] || 0).forEach((r, j) => out.push([x.l + ' ' + (j + 1), x.cols.filter(c => vis(c, r) && r[c.k]).map(c => lab(c, r) + ': ' + r[c.k]).join(' · ')]));
-      else if (x.t === 'photo') { if (v && v.length) { out.push([lab(x, o), v.length + ' תמונות']); ph.push([lab(x, o), v]); } }
-      else if (x.t === 'multi') { if (v && v.length) out.push([lab(x, o), v.join(', ')]); }
-      else if (v) out.push([lab(x, o), v]);
+      const v = o[x.k], g = gmap.get(x) || 'cab';
+      if (x.t === 'rows') (v || []).slice(0, stateObj[x.n] || 0).forEach((r, j) => out.push([x.l + ' ' + (j + 1), x.cols.filter(c => vis(c, r) && r[c.k]).map(c => lab(c, r) + ': ' + r[c.k]).join(' · '), g]));
+      else if (x.t === 'photo') { if (v && v.length) { out.push([lab(x, o), v.length + ' תמונות', g]); ph.push([lab(x, o), v, g]); } }
+      else if (x.t === 'multi') { if (v && v.length) out.push([lab(x, o), v.join(', '), g]); }
+      else if (v) out.push([lab(x, o), v, g]);
     }
   })(activeSteps.flatMap(s => s.fields), stateObj);
   return { out, ph };
@@ -1741,7 +1773,7 @@ async function authToken() {
     });
     if (r.ok) {
       const j = await r.json();
-      sess = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600), email: sess.email };
+      sess = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600), email: sess.email, role: sess.role, contractor: sess.contractor, fullName: sess.fullName };
       setSess(sess); return sess.access_token;
     }
     if (r.status === 400 || r.status === 401) { setSess(null); if (REQUIRE_LOGIN) showLogin('פג תוקף ההתחברות – יש להתחבר מחדש'); return SB_KEY; }
@@ -1815,13 +1847,16 @@ async function loadProfile() {
     const tok = await authToken(), cur = getSess();
     if (!cur || tok === SB_KEY) return true;
     const sub = JSON.parse(atob(tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub;
-    const r = await fetch(SB_URL + '/rest/v1/profiles?select=contractor_name,role&id=eq.' + encodeURIComponent(sub), { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok } });
+    const hd2 = { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok } };
+    let r = await fetch(SB_URL + '/rest/v1/profiles?select=contractor_name,role,full_name&id=eq.' + encodeURIComponent(sub), hd2);
+    if (!r.ok) r = await fetch(SB_URL + '/rest/v1/profiles?select=contractor_name,role&id=eq.' + encodeURIComponent(sub), hd2);   // עמודת שם מלא עוד לא קיימת
     if (!r.ok) return true;
     const j = await r.json();
     const role = j[0] && j[0].role;
     if (!['admin', 'manager', 'contractor'].includes(role)) { setSess(null); return false; }
     cur.role = role;
     cur.contractor = (j[0] && j[0].contractor_name) || '';
+    cur.fullName = (j[0] && j[0].full_name) || '';
     setSess(cur);
   } catch (e) {}
   return true;
@@ -1988,7 +2023,7 @@ async function _saveWorkRecord(out, ph) {
       body: JSON.stringify(body)
     });
 
-    const detailsPayload = Object.assign({}, extraPayload, { details: { lines: out, gps: gps || null } });
+    const detailsPayload = Object.assign({}, extraPayload, { details: { lines: out.map(l => [l[0], l[1]]), gps: gps || null } });
 
     let supResponse = await postReport(detailsPayload);
     if (!supResponse.ok) {
@@ -2105,32 +2140,7 @@ function summary() {
     catch (e) { if (e && e.name === 'AbortError') return; window.open('https://wa.me/?text=' + encodeURIComponent(txt()), '_blank'); }
   };
 
-  const pp = getPdf(out, ph), pn = 'report-' + (S.date || '') + '.pdf';
-
-  const sharePdf = async () => {
-    await saveWorkRecord(out, ph);
-    const b = await pp, fl = new File([b], pn, { type: 'application/pdf' });
-    if (navigator.canShare && navigator.canShare({ files: [fl] })) {
-      try { await navigator.share({ files: [fl], title: 'דוח ביצוע עבודה' }); }
-      catch (e) {
-        if (e && e.name === 'AbortError') return;
-        if (e && e.name === 'NotAllowedError') { toast('ה-PDF מוכן, לחצו שוב על שיתוף'); return; }
-        throw e;
-      }
-    } else dl(b, pn);
-  };
-
-  const savePdf = async () => {
-    await saveWorkRecord(out, ph);
-    dl(await pp, pn);
-  };
-
-  const savePdfAs = async () => {
-    const handle = await pickHandle(pn, 'application/pdf', 'pdf');   // חלון בחירת נתיב נפתח מיד בלחיצה
-    await saveWorkRecord(out, ph);
-    const b = await pp;
-    if (handle) { await writeHandle(handle, b); toast('הקובץ נשמר'); } else dl(b, pn);
-  };
+  const PS = pdfSet(out, ph, 'report-' + (S.date || ''));
 
   return [
     h('div', { cls: 'step-header' }, h('h2', {}, 'סיכום הדיווח'), h('div', { cls: 'step-sub' }, 'לחיצה על שורה מחזירה אותך לעריכה שלה')),
@@ -2144,9 +2154,7 @@ function summary() {
     ...body(),
     h('div', { cls: 'actions-stack' },
       h('button', { cls: 'btn ok', onclick: e => saveBtn(e, out, ph) }, svgIcon(ICONS.check, 19), saved ? 'עדכון העבודה השמורה' : 'שמירת עבודה באפליקציה'),
-      h('button', { cls: 'btn', onclick: e => busy(e, sharePdf) }, svgIcon(ICONS.share, 19), 'שיתוף PDF (עם תמונות)'),
-      h('button', { cls: 'btn sec', onclick: e => busy(e, savePdf) }, svgIcon(ICONS.dl, 19), 'הורדת PDF למכשיר'),
-      canPick ? h('button', { cls: 'btn sec', onclick: e => busy(e, savePdfAs) }, svgIcon(ICONS.folder, 19), 'שמירה בשם… (בחירת נתיב)') : null,
+      ...PS.btns(false, () => saveWorkRecord(out, ph)),
       h('button', { cls: 'btn ghost', onclick: goHome }, 'סיום וחזרה למסך הבית')
     )
   ];
@@ -2227,26 +2235,7 @@ function backupRow() {
 function savedWorkDetail(w) {
   const { out, ph } = w.data ? lines(w.data) : { out: w.lines || [], ph: [] };
   const txt = () => 'דוח ביצוע עבודה ' + w.id + '\n' + out.map(([a, b]) => a + ': ' + b).join('\n');
-  const pp = getPdf(out, ph), pn = 'report-' + ((w.meta && w.meta.date) || w.id) + '.pdf';
-
-  const sharePdf = async () => {
-    const b = await pp, fl = new File([b], pn, { type: 'application/pdf' });
-    if (navigator.canShare && navigator.canShare({ files: [fl] })) {
-      try { await navigator.share({ files: [fl], title: 'דוח ביצוע עבודה ' + w.id }); }
-      catch (e) {
-        if (e && e.name === 'AbortError') return;
-        if (e && e.name === 'NotAllowedError') { toast('ה-PDF מוכן, לחצו שוב על שיתוף'); return; }
-        throw e;
-      }
-    } else dl(b, pn);
-  };
-
-  const savePdf = async () => dl(await pp, pn);
-  const savePdfAs = async () => {
-    const handle = await pickHandle(pn, 'application/pdf', 'pdf');
-    const b = await pp;
-    if (handle) { await writeHandle(handle, b); toast('הקובץ נשמר'); } else dl(b, pn);
-  };
+  const PS = pdfSet(out, ph, 'report-' + ((w.meta && w.meta.date) || w.id));
 
   const editWork = () => {
     if (!w.data) { toast('לא ניתן לערוך רשומה ישנה ללא נתוני מקור'); return; }
@@ -2321,9 +2310,7 @@ function savedWorkDetail(w) {
       ))
     )),
     h('div', { cls: 'actions-stack' },
-      h('button', { cls: 'btn ok', onclick: e => busy(e, sharePdf) }, svgIcon(ICONS.share, 19), 'שיתוף PDF (עם תמונות)'),
-      h('button', { cls: 'btn', onclick: e => busy(e, savePdf) }, svgIcon(ICONS.dl, 19), 'הורדת PDF למכשיר'),
-      canPick ? h('button', { cls: 'btn sec', onclick: e => busy(e, savePdfAs) }, svgIcon(ICONS.folder, 19), 'שמירה בשם… (בחירת נתיב)') : null,
+      ...PS.btns(true),
       w.data ? h('button', { cls: 'btn sec', onclick: editWork }, svgIcon(ICONS.edit, 18), 'עריכת עבודה') : null,
       w.data ? h('button', { cls: 'btn ghost', onclick: duplicateWork }, svgIcon(ICONS.copy, 18), 'שכפול כעבודה חדשה') : null,
       h('button', { cls: 'btn danger', onclick: deleteWork }, svgIcon(ICONS.trash, 18), pendDelWork ? 'לחץ שוב לאישור מחיקה' : 'מחיקת עבודה')
@@ -2475,6 +2462,20 @@ function showApprPopup(list) {
 }
 setInterval(checkApprovals, 120000);
 
+/* ===== ברכה לפי שעון ישראל + זיהוי מצב אפליקציה מותקנת ===== */
+function ilHour() {
+  try { return +new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', hour12: false }).format(new Date()) % 24; }
+  catch (e) { return new Date().getHours(); }
+}
+function greetText() {
+  const h24 = ilHour(), c = getSess() || {};
+  const g = h24 >= 5 && h24 < 12 ? 'בוקר טוב' : h24 >= 12 && h24 < 17 ? 'צהריים טובים' : h24 >= 17 && h24 < 21 ? 'ערב טוב' : 'לילה טוב';
+  const n = c.fullName || c.contractor || (c.email ? String(c.email).split('@')[0] : '');
+  return n ? g + ' ' + n : g;
+}
+setInterval(() => { const e = document.getElementById('greetTx'); if (e) e.textContent = greetText(); }, 60000);
+const isStandalone = () => { try { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; } catch (e) { return false; } };
+
 const draw = (preserveFocus = false) => {
   sd();
   const y = scrollY;
@@ -2516,7 +2517,19 @@ const draw = (preserveFocus = false) => {
   } else if (i < 0) {
     el = [
       h('div', { cls: 'home-top' },
-        h('div', { cls: 'status-badge' }, h('span', { cls: 'status-dot' }), 'מערכת דיווח שטח פעילה'),
+        isStandalone() ? h('span') : h('button', {
+          type: 'button', cls: 'install-btn',
+          onclick: async () => {
+            if (deferredPrompt) {
+              deferredPrompt.prompt();
+              const res = await deferredPrompt.userChoice;
+              if (res.outcome === 'accepted') deferredPrompt = null;
+            } else {
+              showInstallGuide = true;
+              draw();
+            }
+          }
+        }, svgIcon(ICONS.phone, 16), 'הוספה למסך הבית'),
         h('div', { cls: 'theme-controls' },
           h('button', { type: 'button', cls: 'theme-btn', title: isDark ? 'מעבר למצב בהיר' : 'מעבר למצב כהה', 'aria-label': isDark ? 'מעבר למצב בהיר' : 'מעבר למצב כהה', onclick: toggleTheme },
             svgIcon(isDark ? ICONS.sun : ICONS.moon, 18)
@@ -2527,29 +2540,8 @@ const draw = (preserveFocus = false) => {
         )
       ),
       h('div', { cls: 'hero' },
-        h('div', { cls: 'app-icon' }, svgIcon(ICONS.fiber, 40)),
-        h('h1', {}, 'דיווח עבודות'),
-        h('p', { cls: 'sub' }, 'תיעוד שטח מהיר ומסודר, צעד אחר צעד, עם תמונות ו־PDF מוכן לשליחה.'),
+        h('div', { cls: 'greet-line', id: 'greetTx' }, greetText()),
         h('div', { cls: 'hero-actions' },
-          h('div', {
-            cls: 'install-banner',
-            onclick: async () => {
-              if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const res = await deferredPrompt.userChoice;
-                if (res.outcome === 'accepted') deferredPrompt = null;
-              } else {
-                showInstallGuide = true;
-                draw();
-              }
-            }
-          },
-            h('div', { cls: 'ib-txt' },
-              h('div', { cls: 'ib-title' }, 'הוספה למסך הבית'),
-              h('div', { cls: 'ib-sub' }, 'גישה מהירה כמו באפליקציה אמיתית')
-            ),
-            svgIcon(ICONS.phone, 24)
-          ),
           h('button', {
             cls: 'btn',
             onclick: () => {
@@ -2562,7 +2554,7 @@ const draw = (preserveFocus = false) => {
               pendNew = false;
               newRep();
             }
-          }, svgIcon(ICONS.plus, 20), draft && pendNew ? 'הטיוטה תוחלף · לחץ שוב להמשך' : 'התחלת דיווח חדש'),
+          }, draft && pendNew ? 'הטיוטה תוחלף · לחץ שוב להמשך' : 'דיווח חדש'),
           draft ? draftCard() : null
         )
       ),
@@ -2668,7 +2660,7 @@ const jpg = c => {
   return u;
 };
 
-async function mkPDF(out, ph) {
+async function mkPDF(out, ph, title = 'דוח ביצוע עבודה') {
   const W = 1190, H = 1684, M = 70, pages = [];
   let c, x, y;
   const np = () => {
@@ -2685,7 +2677,7 @@ async function mkPDF(out, ph) {
     ls.push(l); return ls;
   };
   np();
-  x.font = 'bold 44px Arial'; x.fillText('דוח ביצוע עבודה', W - M, y + 44); y += 72;
+  x.font = 'bold 44px Arial'; x.fillText(title, W - M, y + 44); y += 72;
   x.font = '24px Arial'; x.fillStyle = '#666'; x.fillText('הופק: ' + new Date().toLocaleString('he-IL'), W - M, y); y += 46;
   for (const [a, b] of out) {
     x.font = '26px Arial';
@@ -2732,12 +2724,56 @@ async function mkPDF(out, ph) {
   return new Blob(parts, { type: 'application/pdf' });
 }
 
-let pc = { k: '', p: null };
-const getPdf = (out, ph) => {
-  const k = JSON.stringify([out, ph]);
-  if (pc.k !== k) { pc.k = k; pc.p = mkPDF(out, ph); pc.p.catch(() => {}); }
-  return pc.p;
+const pcache = new Map();
+const getPdf = (out, ph, title) => {
+  const k = JSON.stringify([out, ph, title || '']);
+  if (!pcache.has(k)) {
+    if (pcache.size >= 4) pcache.delete(pcache.keys().next().value);
+    const pr = mkPDF(out, ph, title); pr.catch(() => pcache.delete(k)); pcache.set(k, pr);
+  }
+  return pcache.get(k);
 };
+
+// דיווח שכולל גם פרטי ארון וגם הפעלה ← שני מסמכים נפרדים: "PDF ארון" ו"PDF הפעלה" (לא מאוחדים)
+function docsOf(out, ph) {
+  const hasAct = ph.some(p => p[2] === 'act');
+  const hasCab = out.some(l => l[2] === 'cab') || ph.some(p => p[2] === 'cab');
+  if (!(hasAct && hasCab)) return [{ name: '', label: '', title: 'דוח ביצוע עבודה', out, ph }];
+  const pick = g => ({ out: out.filter(l => l[2] === 'gen' || l[2] === 'both' || l[2] === g), ph: ph.filter(p => p[2] === 'gen' || p[2] === g) });
+  return [
+    { name: 'ארון', label: 'PDF ארון', title: 'דוח ביצוע עבודה – ארון', ...pick('cab') },
+    { name: 'הפעלה', label: 'PDF הפעלה', title: 'דוח ביצוע עבודה – הפעלה', ...pick('act') }
+  ];
+}
+function pdfSet(out, ph, base) {
+  const docs = docsOf(out, ph).map(d => ({ ...d, fn: base + (d.name ? '-' + d.name : '') + '.pdf', p: getPdf(d.out, d.ph, d.title) }));
+  docs.forEach(d => d.p.catch(() => {}));
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const share = async ttl => {
+    const blobs = await Promise.all(docs.map(d => d.p)), fls = blobs.map((b, k) => new File([b], docs[k].fn, { type: 'application/pdf' }));
+    if (navigator.canShare && navigator.canShare({ files: fls })) {
+      try { await navigator.share({ files: fls, title: ttl }); }
+      catch (e) {
+        if (e && e.name === 'AbortError') return;
+        if (e && e.name === 'NotAllowedError') { toast('ה-PDF מוכן, לחצו שוב על שיתוף'); return; }
+        throw e;
+      }
+    } else for (let k = 0; k < blobs.length; k++) { dl(blobs[k], docs[k].fn); if (k < blobs.length - 1) await wait(600); }
+  };
+  const download = async () => { for (let k = 0; k < docs.length; k++) { dl(await docs[k].p, docs[k].fn); if (k < docs.length - 1) await wait(600); } };
+  const saveAs = async d => {
+    const handle = await pickHandle(d.fn, 'application/pdf', 'pdf');   // חלון בחירת נתיב נפתח מיד בלחיצה
+    const b = await d.p;
+    if (handle) { await writeHandle(handle, b); toast('הקובץ נשמר'); } else dl(b, d.fn);
+  };
+  const many = docs.length > 1;
+  const btns = (okFirst, beforeSave) => [
+    h('button', { cls: 'btn' + (okFirst ? ' ok' : ''), onclick: e => busy(e, async () => { if (beforeSave) await beforeSave(); await share('דוח ביצוע עבודה'); }) }, svgIcon(ICONS.share, 19), many ? 'שיתוף 2 קובצי PDF (ארון + הפעלה)' : 'שיתוף PDF (עם תמונות)'),
+    h('button', { cls: 'btn' + (okFirst ? '' : ' sec'), onclick: e => busy(e, async () => { if (beforeSave) await beforeSave(); await download(); }) }, svgIcon(ICONS.dl, 19), many ? 'הורדת PDF ארון + PDF הפעלה' : 'הורדת PDF למכשיר'),
+    ...(canPick ? docs.map(d => h('button', { cls: 'btn sec', onclick: e => busy(e, async () => { const hnd = await pickHandle(d.fn, 'application/pdf', 'pdf'); if (beforeSave) await beforeSave(); const b = await d.p; if (hnd) { await writeHandle(hnd, b); toast('הקובץ נשמר'); } else dl(b, d.fn); }) }, svgIcon(ICONS.folder, 19), d.label ? 'שמירה בשם… ' + d.label : 'שמירה בשם… (בחירת נתיב)')) : [])
+  ];
+  return { docs, share, download, saveAs, btns };
+}
 
 const dl = (b, n) => {
   const u = URL.createObjectURL(b), a = document.createElement('a');
