@@ -1366,10 +1366,7 @@ const MT = () => {
   // סוגי תחזוקה לפי חברה: HOT – תקלות/הרחבות · IBC ו-RIMON – גם העתקות · UNIGAEA – תקלות/העתקות
   const subO = uni ? ['תקלות', 'העתקות'] : S.co === 'HOT' ? ['תקלות', 'הרחבות'] : ['תקלות', 'הרחבות', 'העתקות'];
   a.push({ title: 'סוג תחזוקה', fields: [f('sub', 'choice', 'סוג תחזוקה', { o: subO })] });
-  if (S.sub === 'העתקות') a.push(
-    { title: 'העתקות', fields: [f('ks', 'choice', 'מה הועתק?', { o: ['קלוז׳ר', 'ארונית'] })] },
-    ...(S.ks === 'קלוז׳ר' ? CL() : S.ks === 'ארונית' ? CAB() : [])
-  );
+  if (S.sub === 'העתקות') a.push(...CL());   // העתקות = קלוז׳ר בלבד (בלי בחירת ארונית)
   if (S.sub === 'תקלות') {
     const acts = S.acts || [];
     a.push(
@@ -1414,7 +1411,7 @@ const normalizeS = () => {
   if (S.wk === 'הפעלות') S.wk = WK_ACT;                        // שינוי שם: "הפעלות" ← "הפעלה בלבד"
   const lockedCn = (getSess() || {}).contractor;
   if (lockedCn) S.contractor = lockedCn;                       // שם הקבלן נקבע לפי המשתמש המחובר
-  if (S.wk === 'תחזוקה' && S.sub === 'העתקות' && S.ks === 'התקנת פנל') delete S.ks;
+  if (S.wk === 'תחזוקה' && S.sub === 'העתקות') S.ks = 'קלוז׳ר';   // העתקות = קלוז׳ר בלבד
   if (S.acts && S.acts.includes('החלפת פיקטל')) S.acts = S.acts.map(x => x === 'החלפת פיקטל' ? 'החלפת Pigtail' : x);
   if (isUni()) {
     if (S.wk === 'הקמות') S.wk = 'לקוח עסקי';
