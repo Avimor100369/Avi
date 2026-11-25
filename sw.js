@@ -1,6 +1,6 @@
 /* UNIGAEA PWA service worker — scoped for GitHub Pages project repositories. */
 const CACHE_PREFIX = 'unigaea-pwa-';
-const CACHE_NAME = CACHE_PREFIX + 'v5';
+const CACHE_NAME = CACHE_PREFIX + 'v6';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', event => {
@@ -66,13 +66,13 @@ self.addEventListener('push', event => {
     badge: './icon-192.png',
     dir: 'rtl',
     lang: 'he',
-    data: { url: d.url || './report-test.html' }
+    data: { url: d.url || './' }
   }));
 });
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const target = new URL((event.notification.data && event.notification.data.url) || './report-test.html', self.registration.scope).href;
+  const target = new URL((event.notification.data && event.notification.data.url) || './', self.registration.scope).href;
   event.waitUntil((async () => {
     const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const c of list) { if ('focus' in c) { try { await c.focus(); return; } catch (e) {} } }
