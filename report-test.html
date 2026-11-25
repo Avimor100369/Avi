@@ -2187,18 +2187,21 @@ async function savePushSub(sub) {
 async function enablePush() {
   try {
     const perm = await Notification.requestPermission();
-    if (perm !== 'granted') { toast('ההתראות נחסמו. אפשר לאשר אותן בהגדרות המכשיר.'); return; }
+    if (perm !== 'granted') { toast('ההתראות נחסמו. אפשר לאשר אותן בהגדרות המכשיר.'); return false; }
     const reg = await navigator.serviceWorker.ready;
     const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToU8(VAPID_PUBLIC) });
-    toast((await savePushSub(sub)) ? 'ההתראות הופעלו' : 'ההרשמה לא נשמרה – נסה שוב בחיבור לאינטרנט');
+    const okSave = await savePushSub(sub);
+    toast(okSave ? 'ההתראות הופעלו' : 'ההרשמה לא נשמרה – נסה שוב בחיבור לאינטרנט');
     if (i < 0) draw(true);
-  } catch (e) { toast('הפעלת ההתראות נכשלה'); }
+    return true;
+  } catch (e) { toast('הפעלת ההתראות נכשלה'); return false; }
 }
 // רישום מחדש שקט (אם כבר אושר) – שומר שההרשמה תקפה ומשויכת למשתמש המחובר
 async function refreshPushSub() {
   try {
     if (!pushSupported() || Notification.permission !== 'granted' || !getSess() || navigator.onLine === false) return;
-    const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToU8(VAPID_PUBLIC) });
     if (sub) await savePushSub(sub);
   } catch (e) {}
 }
@@ -2211,6 +2214,29 @@ function pushRow() {
     h('button', { type: 'button', cls: 'btn ghost', onclick: enablePush }, '🔔 הפעלת התראות מהמנהל'));
 }
 setTimeout(refreshPushSub, 4000);
+
+/* ===== חובה: אישור התראות מהמנהל – חוסם את האפליקציה עד שמאשרים ===== */
+const PUSH_REQUIRED = true;   // false = בלי חסימה
+function pushGate() {
+  try {
+    const old = document.getElementById('push-gate');
+    const need = PUSH_REQUIRED && REQUIRE_LOGIN && getSess() && !document.getElementById('fa-login') && pushSupported() && Notification.permission !== 'granted';
+    if (!need) { if (old) old.remove(); return; }
+    const denied = Notification.permission === 'denied';
+    if (old && old.dataset.denied === String(denied)) return;
+    if (old) old.remove();
+    const ov = h('div', { id: 'push-gate', cls: 'msg-ov', dir: 'rtl', 'data-denied': String(denied), style: 'z-index:100001' },
+      h('div', { cls: 'msg-box', role: 'dialog' },
+        h('div', { cls: 'msg-h' }, '🔔 נדרש אישור התראות'),
+        h('div', { cls: 'msg-b' }, denied
+          ? 'ההתראות חסומות במכשיר. כדי להמשיך יש לאפשר אותן: לחץ על סמל המנעול ליד כתובת האתר ← הרשאות ← התראות ← אפשר (או בהגדרות הטלפון ← אפליקציות ← Chrome ← התראות). אחר כך לחץ "בדקתי".'
+          : 'כדי לקבל הודעות והתראות חשובות מהמנהל גם כשהאפליקציה סגורה, יש לאשר התראות. לחץ על הכפתור ובחלון שייפתח בחר "אפשר".'),
+        h('button', { type: 'button', cls: 'btn', onclick: async () => { if (denied) { pushGate(); if (Notification.permission === 'denied') toast('ההתראות עדיין חסומות'); } else { await enablePush(); } pushGate(); } }, denied ? 'בדקתי' : 'הפעלת התראות')));
+    document.body.appendChild(ov);
+  } catch (e) {}
+}
+setInterval(pushGate, 2000);
+setTimeout(pushGate, 1500);
 
 function accountRow() {
   const sess = getSess();
