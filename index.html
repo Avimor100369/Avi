@@ -2549,7 +2549,7 @@ async function checkMsgs() {
     const H = { apikey: SB_KEY, Authorization: 'Bearer ' + tok };
     const ra = await fetch(SB_URL + '/rest/v1/announcements?select=id,title,body,created_by&order=created_at.asc&limit=30', { headers: H });
     if (!ra.ok) return;
-    const anns = (await ra.json()).filter(a => a.created_by !== sub);
+    const anns = await ra.json();   // כולל הודעות שהמשתמש עצמו שלח (לבדיקה)
     if (!anns.length) return;
     const rr = await fetch(SB_URL + '/rest/v1/announcement_reads?select=announcement_id&user_id=eq.' + encodeURIComponent(sub), { headers: H });
     const done = new Set(rr.ok ? (await rr.json()).map(x => x.announcement_id) : []);
