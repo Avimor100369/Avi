@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
-<link rel="manifest" href="./manifest.webmanifest">
+<link rel="manifest" href="./manifest-test.webmanifest">
 <title>דיווח עבודות · פק״ע תייקום</title>
 <meta name="apple-mobile-web-app-title" content="פק״ע תייקום">
 <link rel="apple-touch-icon" href="./icon-192.png">
@@ -1873,8 +1873,8 @@ async function loadProfile() {
   return true;
 }
 
-/* ===== התנתקות אוטומטית: אחרי 3 שעות ללא שימוש נדרשים שם משתמש וסיסמה מחדש ===== */
-const IDLE_LOGOUT_MS = 3 * 60 * 60 * 1000;
+/* ===== התנתקות אוטומטית: אחרי 30 דקות ללא שימוש נדרשים שם משתמש וסיסמה מחדש ===== */
+const IDLE_LOGOUT_MS = 30 * 60 * 1000;
 const SEEN_KEY = 'fa_seen';
 const touchSeen = () => { try { if (getSess()) localStorage.setItem(SEEN_KEY, String(Date.now())); } catch (e) {} };
 let _lastAct = 0;
@@ -1887,7 +1887,7 @@ function idleCheck() {
   if (Date.now() - seen > IDLE_LOGOUT_MS) {
     setSess(null);
     try { localStorage.removeItem(SEEN_KEY); } catch (e) {}
-    showLogin('עברו 3 שעות ללא שימוש – יש להתחבר מחדש עם שם משתמש וסיסמה');
+    showLogin('עברו 30 דקות ללא שימוש – יש להתחבר מחדש עם שם משתמש וסיסמה');
     return true;
   }
   return false;

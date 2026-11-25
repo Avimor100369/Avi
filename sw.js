@@ -1,6 +1,6 @@
 /* UNIGAEA PWA service worker — scoped for GitHub Pages project repositories. */
 const CACHE_PREFIX = 'unigaea-pwa-';
-const CACHE_NAME = CACHE_PREFIX + 'v3';
+const CACHE_NAME = CACHE_PREFIX + 'v4';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', event => {
@@ -32,11 +32,11 @@ self.addEventListener('fetch', event => {
         const response = await fetch(request);
         if (response && response.ok) {
           const cache = await caches.open(CACHE_NAME);
-          cache.put('./index.html', response.clone());
+          cache.put(request, response.clone());
         }
         return response;
       } catch (error) {
-        return (await caches.match('./index.html')) || (await caches.match('./'));
+        return (await caches.match(request)) || (await caches.match('./index.html')) || (await caches.match('./'));
       }
     })());
     return;
