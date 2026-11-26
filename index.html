@@ -1961,8 +1961,8 @@ function showReset(p) {
   showLogin();
   const d = document.getElementById('fa-login'); if (!d) return;
   const f = d.querySelector('#fa-form');
-  f.innerHTML = '<h2>קביעת סיסמה חדשה</h2><p>הזן סיסמה חדשה (לפחות 6 תווים).</p>' +
-    '<input id="fa-np" name="password" type="password" autocomplete="new-password" placeholder="סיסמה חדשה" minlength="6" required>' +
+  f.innerHTML = '<h2>קביעת סיסמה חדשה</h2><p>הזן סיסמה חדשה (לפחות 8 תווים).</p>' +
+    '<input id="fa-np" name="password" type="password" autocomplete="new-password" placeholder="סיסמה חדשה" minlength="8" required>' +
     '<div class="fa-err" id="fa-err"></div><button class="btn" type="submit" id="fa-go">שמירה וכניסה</button>';
   f.onsubmit = async ev => {
     ev.preventDefault();
