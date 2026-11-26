@@ -1453,6 +1453,7 @@ const normalizeS = () => {
   }
 };
 
+const dashOk = x => !!x.dash || (S.co === 'HOT' && x.t === 'num' && !x.alpha);
 const stepsRaw = () => {
   normalizeS();
   const uni = isUni(), build = S.wk === 'הקמות' || S.wk === 'לקוח עסקי';
@@ -1578,7 +1579,7 @@ function need(fs, o, out, pre = '') {
     else if (x.t === 'photo') { if (!(v && v.length)) out.push('חסרה תמונה בקטגוריה: ' + L); }
     else if (x.t === 'multi') { if (!(v && v.length)) out.push('יש לבחור לפחות פעולה אחת'); }
     else if (x.t === 'count') { if (v === undefined || v === null || v === '') out.push('יש לבחור ' + L); }
-    else if (v && x.dash && !/\d/.test(v)) out.push('נא להזין מספר תקין (ספרות, ומקף אם צריך): ' + L);
+    else if (v && dashOk(x) && !/\d/.test(v)) out.push('נא להזין מספר תקין (ספרות, ומקף אם צריך): ' + L);
     else if (!v || !String(v).trim()) out.push(x.t === 'choice' ? 'יש לבחור: ' + L : x.t === 'num' ? 'נא להזין מספר: ' + L : 'נא למלא: ' + L);
   }
 }
@@ -1746,7 +1747,7 @@ function fld(x, o) {
       type: x.t === 'date' ? 'date' : 'text',
       placeholder: x.ph || '',
       ...(x.t === 'city' || x.t === 'addr' ? { autocomplete: 'off' } : {}),
-      ...(x.t === 'num' ? (x.alpha ? { inputmode: 'text', autocapitalize: 'characters', autocorrect: 'off', spellcheck: 'false', dir: 'ltr' } : x.dash ? { inputmode: 'text' } : { inputmode: 'numeric', pattern: '[0-9]*' }) : {})
+      ...(x.t === 'num' ? (x.alpha ? { inputmode: 'text', autocapitalize: 'characters', autocorrect: 'off', spellcheck: 'false', dir: 'ltr' } : dashOk(x) ? { inputmode: 'text' } : { inputmode: 'numeric', pattern: '[0-9]*' }) : {})
     });
     ip.value = o[x.k] || '';
     if (x.ro) { const cn = (getSess() || {}).contractor || ''; ip.value = cn; o[x.k] = cn; ip.readOnly = true; ip.setAttribute('aria-readonly', 'true'); ip.className = 'ro-fld'; }
@@ -1754,7 +1755,7 @@ function fld(x, o) {
     fv.setAttribute('class', 'fv' + (String(o[x.k] || '').trim() ? ' on' : ''));
     if (L.firstChild) L.firstChild.append(fv);
     ip.oninput = () => {
-      if (x.t === 'num') ip.value = ip.value.replace(x.alpha ? /[^A-Za-z0-9-]/g : x.dash ? /[^\d-]/g : /\D/g, '');
+      if (x.t === 'num') ip.value = ip.value.replace(x.alpha ? /[^A-Za-z0-9-]/g : dashOk(x) ? /[^\d-]/g : /\D/g, '');
       o[x.k] = ip.value;
       fv.classList.toggle('on', !!ip.value.trim());
       if (ip.value.trim()) { const g = ip.closest('.field-group'); if (g) g.classList.remove('miss'); }
