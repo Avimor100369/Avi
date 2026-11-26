@@ -1436,6 +1436,7 @@ const normalizeS = () => {
   if (S.wk === 'הפעלות') S.wk = WK_ACT;                        // שינוי שם: "הפעלות" ← "הפעלה בלבד"
   const lockedCn = (getSess() || {}).contractor;
   if (lockedCn) S.contractor = lockedCn;                       // שם הקבלן נקבע לפי המשתמש המחובר
+  if (S.ct === 'פתיחה סגירה') delete S.win;                    // בפתיחה סגירה אין התקנת חלון
   if (S.wk === 'תחזוקה' && S.sub === 'העתקות') S.ks = 'קלוז׳ר';   // העתקות = קלוז׳ר בלבד
   if (S.acts && S.acts.includes('החלפת פיקטל')) S.acts = S.acts.map(x => x === 'החלפת פיקטל' ? 'החלפת Pigtail' : x);
   if (isUni()) {
