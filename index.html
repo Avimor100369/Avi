@@ -1564,21 +1564,33 @@ function need(fs, o, out, pre = '') {
 }
 
 function shrink(file, cb) {
-  const r = new FileReader();
-  r.onload = () => {
-    const im = new Image();
-    im.onload = () => {
-      const k = Math.min(1, 1000 / Math.max(im.width, im.height));
+  // הקטנת תמונה לשמירה. קודם דרך כתובת זמנית (חוסכת זיכרון בתמונות ענק), ואם נכשל – דרך קריאת הקובץ. כל כישלון מוצג למשתמש.
+  const fail = why => { try { toast('לא ניתן להוסיף את התמונה (' + why + '). נסה שוב או צלם במקום לבחור מהגלריה'); } catch (e) {} };
+  const draw2 = im => {
+    try {
+      const k = Math.min(1, 1000 / Math.max(im.naturalWidth || im.width, im.naturalHeight || im.height));
       const c = document.createElement('canvas');
-      c.width = im.width * k;
-      c.height = im.height * k;
+      c.width = Math.max(1, Math.round((im.naturalWidth || im.width) * k));
+      c.height = Math.max(1, Math.round((im.naturalHeight || im.height) * k));
       c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-      cb(c.toDataURL('image/jpeg', 0.72));
-    };
-    im.onerror = () => toast('לא ניתן לטעון את התמונה');
-    im.src = r.result;
+      const out = c.toDataURL('image/jpeg', 0.72);
+      if (!out || out.length < 200) { fail('התמונה גדולה מדי'); return false; }
+      cb(out); return true;
+    } catch (e) { fail('שגיאה בעיבוד'); return false; }
   };
-  r.readAsDataURL(file);
+  const viaReader = () => {
+    const r = new FileReader();
+    r.onerror = () => fail('הקובץ לא נקרא');
+    r.onload = () => { const im = new Image(); im.onload = () => draw2(im); im.onerror = () => fail('סוג קובץ לא נתמך'); im.src = r.result; };
+    try { r.readAsDataURL(file); } catch (e) { fail('הקובץ לא נקרא'); }
+  };
+  if (!file) { fail('לא נבחר קובץ'); return; }
+  try {
+    const u = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { const ok = draw2(im); try { URL.revokeObjectURL(u); } catch (e) {} if (!ok) return; };
+    im.onerror = () => { try { URL.revokeObjectURL(u); } catch (e) {} viaReader(); };
+    im.src = u;
+  } catch (e) { viaReader(); }
 }
 
 const isEmptyFld = (x, o) => {
