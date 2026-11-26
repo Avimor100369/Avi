@@ -2567,17 +2567,25 @@ const apprTag = id => {
 };
 let apprBusy = false;
 async function checkApprovals() {
-  if (apprBusy || !getSess() || !savedWorks.length || navigator.onLine === false) return;
+  if (apprBusy || !getSess() || navigator.onLine === false) return;
   apprBusy = true;
   try {
     const ids = savedWorks.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 60).map(w => w.id).filter(x => /^[\w-]+$/.test(x));
-    if (!ids.length) return;
     const tok = await authToken();
     if (tok === SB_KEY) return;
-    const r = await fetch(SB_URL + '/rest/v1/reports?select=report_id,project,approval_status,approval_note,approved_at&approval_status=not.is.null&report_id=in.(' + ids.join(',') + ')',
-      { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok } });
-    if (!r.ok) return;
-    const rows = await r.json(), seen = jget(APPR_SEEN, {}), fresh = [];
+    const HH = { apikey: SB_KEY, Authorization: 'Bearer ' + tok }, SEL = '/rest/v1/reports?select=report_id,project,approval_status,approval_note,approved_at&approval_status=not.is.null';
+    let rows = [];
+    if (ids.length) { const r = await fetch(SB_URL + SEL + '&report_id=in.(' + ids.join(',') + ')', { headers: HH }); if (r.ok) rows = await r.json(); }
+    // גם החלטות אחרונות (3 ימים) של אותו קבלן שלא קיימות במכשיר הזה – למשל דיווח ממכשיר אחר
+    try {
+      const cn = (getSess() || {}).contractor;
+      if (cn) {
+        const since = new Date(Date.now() - 3 * 864e5).toISOString();
+        const r2 = await fetch(SB_URL + SEL + '&contractor_name=eq.' + encodeURIComponent(cn) + '&approved_at=gte.' + encodeURIComponent(since) + '&limit=30', { headers: HH });
+        if (r2.ok) (await r2.json()).forEach(x => { if (!rows.some(y => y.report_id === x.report_id)) rows.push(x); });
+      }
+    } catch (e) {}
+    const seen = jget(APPR_SEEN, {}), fresh = [];
     let changed = false;
     rows.forEach(x => {
       if (x.approval_status !== 'approved' && x.approval_status !== 'rejected') return;
