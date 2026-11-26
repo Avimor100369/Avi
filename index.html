@@ -1361,7 +1361,7 @@ const PNL = () => [
 
 const CL = () => [
   { title: 'מיקום', fields: [f('loc', 'choice', 'גוב או עמוד', { o: ['גוב', 'עמוד', 'אחר'] }), f('locNum', 'num', () => 'מספר ' + S.loc, { show: () => S.loc === 'גוב' || S.loc === 'עמוד' }), f('locO', 'text', 'פירוט מיקום (אחר)', { show: () => S.loc === 'אחר' })] },
-  { title: 'סוג קלוז׳ר', fields: [f('ct', 'choice', 'סוג קלוז׳ר', { o: ['קטן', 'בינוני', 'גדול', 'פתיחה סגירה'] }), f('win', 'choice', 'התקנת חלון', { o: ['כן', 'לא'], show: () => isUni() && (S.wk === 'לקוח עסקי' || S.wk === 'ציר הזנה') && ['קטן', 'בינוני', 'גדול'].includes(S.ct) })] },
+  { title: 'סוג קלוז׳ר', fields: [f('ct', 'choice', 'סוג קלוז׳ר', { o: ['קטן', 'בינוני', 'גדול', 'פתיחה סגירה'] }), f('ctFor', 'text', 'פתיחה סגירה עבור', { show: () => S.ct === 'פתיחה סגירה' }), f('win', 'choice', 'התקנת חלון', { o: ['כן', 'לא'], show: () => isUni() && (S.wk === 'לקוח עסקי' || S.wk === 'ציר הזנה') && ['קטן', 'בינוני', 'גדול'].includes(S.ct) })] },
   { title: 'היתוכים וכבלים', fields: [f('fus', 'num', 'כמות היתוכים בקלוז׳ר'), f('nc', 'count', 'כמות הכנסת כבלים'), f('cables', 'rows', 'כבל', { n: 'nc', cols: [f('t', 'choice', 'סוג כבל', { o: CB }), f('n', 'num', 'מספר כבל')] })] },
   { title: 'תמונות', fields: PH(isUni() && S.wk === 'ציר הזנה' ? [...CL_PH, 'צילום מדבקת מספר UNIGAEA'] : CL_PH) },
   NOTES
@@ -1436,7 +1436,6 @@ const normalizeS = () => {
   if (S.wk === 'הפעלות') S.wk = WK_ACT;                        // שינוי שם: "הפעלות" ← "הפעלה בלבד"
   const lockedCn = (getSess() || {}).contractor;
   if (lockedCn) S.contractor = lockedCn;                       // שם הקבלן נקבע לפי המשתמש המחובר
-  delete S.ctFor;
   if (S.ct === 'פתיחה סגירה') delete S.win;                    // בפתיחה סגירה אין התקנת חלון
   if (S.wk === 'תחזוקה' && S.sub === 'העתקות') S.ks = 'קלוז׳ר';   // העתקות = קלוז׳ר בלבד
   if (S.acts && S.acts.includes('החלפת פיקטל')) S.acts = S.acts.map(x => x === 'החלפת פיקטל' ? 'החלפת Pigtail' : x);
