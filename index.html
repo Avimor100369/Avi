@@ -1459,7 +1459,7 @@ const steps = () => {
   return [
   { title: 'פרטים ראשוניים', fields: [f('contractor', 'text', 'קבלן מבצע', { get ro() { return !!(getSess() || {}).contractor; } }), f('date', 'date', 'תאריך ביצוע'), f('project', 'text', 'שם פרויקט'), f('city', 'city', 'עיר'), f('address', 'addr', 'כתובת')] },
   { title: 'בחירת חברה', fields: [f('co', 'choice', 'חברה', { o: ['IBC', 'HOT', 'UNIGAEA', 'RIMON'] })] },
-  { title: 'סוג עבודה', fields: [f('wk', 'choice', 'סוג עבודה', { o: uni ? ['לקוח עסקי', 'התקנת פנל', 'תחזוקה', 'ציר הזנה'] : ['הקמות', 'תחזוקה', 'ציר הזנה', WK_ACT] })] },
+  { title: 'סוג עבודה', fields: [f('wk', 'choice', 'סוג עבודה', { o: uni ? ['לקוח עסקי', 'התקנת פנל', 'תחזוקה', 'ציר הזנה'] : ['הקמות', 'תחזוקה', 'ציר הזנה', WK_ACT].filter(w => !(S.co === 'HOT' && w === 'תחזוקה' && S.wk !== 'תחזוקה')) })] },
   ...(build ? [{ title: S.wk, fields: [f('ks', 'choice', 'מה הוקם?', { o: uni ? ['קלוז׳ר', 'ארונית'] : ['קלוז׳ר', 'ארונית', 'התקנת פנל'] })] }, ...(S.ks === 'קלוז׳ר' ? CL() : S.ks === 'ארונית' ? CAB() : S.ks === 'התקנת פנל' ? PNL() : [])] : S.wk === 'תחזוקה' ? MT() : S.wk === 'ציר הזנה' ? CL() : S.wk === 'התקנת פנל' ? PNL() : S.wk === WK_ACT ? [CAB()[0], { title: 'תמונות הפעלה', fields: ACTPH('hp') }, NOTES_ACT] : [])
   ];
 };
