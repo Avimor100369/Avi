@@ -1195,6 +1195,15 @@ input[type=date]::-webkit-datetime-edit { direction: ltr; unicode-bidi: isolate;
 /* ---- תאריכים: תמיד משמאל לימין (26/11/2026 09:47), גם בתוך טקסט בעברית ---- */
 function fdt(v) { const d = v instanceof Date ? v : new Date(v); if (isNaN(d)) return String(v == null ? '' : v); const q = n => String(n).padStart(2, '0'); return q(d.getDate()) + '/' + q(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + q(d.getHours()) + ':' + q(d.getMinutes()); }
 function lrm(t) { return '\u200E' + t + '\u200E'; }
+/* מזהה דיווח חדש: תאריך + מספר (למשל 261126-48271). דיווחים קיימים שומרים את המזהה שלהם. */
+function newReportId() {
+  const d = new Date(), q = n => String(n).padStart(2, '0'), base = q(d.getFullYear() % 100) + q(d.getMonth() + 1) + q(d.getDate());
+  for (let k = 0; k < 20; k++) {
+    const id = base + '-' + (10000 + Math.floor(Math.random() * 90000));
+    if (!savedWorks.some(w => w.id === id)) return id;
+  }
+  return base + '-' + Date.now().toString().slice(-6);
+}
 function normDT(x) {
   x = String(x == null ? '' : x);
   let m = /^(\d{1,2})\.(\d{1,2})\.(\d{4}),?\s*(\d{1,2}):(\d{2})/.exec(x);
@@ -2015,7 +2024,7 @@ const strHash = t => { let a = 5381, b = 52711; for (let k = 0; k < t.length; k+
 
 async function _saveWorkRecord(out, ph) {
   const nowStr = fdt(new Date());
-  const id = editingId || (saved && saved.id) || ('R-' + Date.now().toString(36).toUpperCase());
+  const id = editingId || (saved && saved.id) || newReportId();
   editingId = id;   // המזהה נקבע מיד – שמירה חוזרת לא תיצור דיווח נוסף
   const existingIdx = savedWorks.findIndex(w => w.id === id);
   const createdAt = existingIdx >= 0 ? savedWorks[existingIdx].createdAt : nowStr;
