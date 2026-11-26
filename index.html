@@ -1336,7 +1336,7 @@ const ICONS = {
 const f = (k, t, l, x = {}) => ({ k, t, l, ...x });
 const lab = (x, o) => typeof x.l === 'function' ? x.l(o) : x.l;
 const SP = ['1:4', '1:8', '1:16', '1:32'];
-const CB = ['12', '36', '48', '72', '96', '288'];
+const CB = ['12', '36', '48', '72', '96', '144', '288'];
 const PH = a => a.map(l => f('ph:' + l, 'photo', l));
 // תמונות עם מפתח ייחודי לכל קבוצה (כדי שאותה כותרת בשלבים שונים לא תשתף תמונות)
 const PHG = (g, a, show, pre = '') => a.map(l => f('ph:' + g + ':' + l, 'photo', pre + l, show ? { show } : {}));
