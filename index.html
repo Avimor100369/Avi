@@ -1362,7 +1362,7 @@ const PNL = () => [
 const CL = () => [
   { title: 'מיקום', fields: [f('loc', 'choice', 'גוב או עמוד', { o: ['גוב', 'עמוד', 'אחר'] }), f('locNum', 'num', () => 'מספר ' + S.loc, { alpha: true, ph: 'ספרות, אנגלית ומקף', show: () => S.loc === 'גוב' || S.loc === 'עמוד' }), f('locO', 'text', 'פירוט מיקום (אחר)', { show: () => S.loc === 'אחר' })] },
   { title: 'סוג קלוז׳ר', fields: [f('ct', 'choice', 'סוג קלוז׳ר', { o: ['קטן', 'בינוני', 'גדול', 'פתיחה סגירה'] }), f('ctFor', 'text', 'פתיחה סגירה עבור', { show: () => S.ct === 'פתיחה סגירה' }), f('win', 'choice', 'התקנת חלון', { o: ['כן', 'לא'], show: () => isUni() && (S.wk === 'לקוח עסקי' || S.wk === 'ציר הזנה') && ['קטן', 'בינוני', 'גדול'].includes(S.ct) })] },
-  { title: 'היתוכים וכבלים', fields: [f('fus', 'num', 'כמות היתוכים בקלוז׳ר'), f('nc', 'count', 'כמות הכנסת כבלים'), f('cables', 'rows', 'כבל', { n: 'nc', cols: [f('t', 'choice', 'סוג כבל', { o: CB }), f('n', 'num', 'מספר כבל')] })] },
+  { title: 'היתוכים וכבלים', fields: [f('fus', 'num', 'כמות היתוכים בקלוז׳ר'), f('nc', 'count', 'כמות הכנסת כבלים'), f('cables', 'rows', 'כבל', { n: 'nc', cols: [f('t', 'choice', 'סוג כבל', { o: CB }), { ...f('n', 'num', 'מספר כבל'), get dash() { return S.co === 'HOT'; }, get ph() { return this.dash ? 'ניתן להזין גם מקף (-)' : ''; } }] })] },
   { title: 'תמונות', fields: PH(isUni() && S.wk === 'ציר הזנה' ? [...CL_PH, 'צילום מדבקת מספר UNIGAEA'] : CL_PH) },
   NOTES
 ];
@@ -1453,7 +1453,7 @@ const normalizeS = () => {
   }
 };
 
-const steps = () => {
+const stepsRaw = () => {
   normalizeS();
   const uni = isUni(), build = S.wk === 'הקמות' || S.wk === 'לקוח עסקי';
   return [
@@ -1463,6 +1463,7 @@ const steps = () => {
   ...(build ? [{ title: S.wk, fields: [f('ks', 'choice', 'מה הוקם?', { o: uni ? ['קלוז׳ר', 'ארונית'] : ['קלוז׳ר', 'ארונית', 'התקנת פנל'] })] }, ...(S.ks === 'קלוז׳ר' ? CL() : S.ks === 'ארונית' ? CAB() : S.ks === 'התקנת פנל' ? PNL() : [])] : S.wk === 'תחזוקה' ? MT() : S.wk === 'ציר הזנה' ? CL() : S.wk === 'התקנת פנל' ? PNL() : S.wk === WK_ACT ? [CAB()[0], { title: 'תמונות הפעלה', fields: ACTPH('hp') }, NOTES_ACT] : [])
   ];
 };
+const steps = () => stepsRaw().map(st => st.fields.some(x => x.t === 'photo' && !x.opt) ? { ...st, fields: [...st.fields, f('ph:extra:' + st.title, 'photo', 'צילום / גלריה נוספים (לא חובה)', { opt: 1 })] } : st);
 
 
 /* ===== יישובים: השלמה אוטומטית (datalist) + אזהרה רכה על שם שלא ברשימה ===== */
@@ -1577,7 +1578,7 @@ function need(fs, o, out, pre = '') {
     else if (x.t === 'photo') { if (!(v && v.length)) out.push('חסרה תמונה בקטגוריה: ' + L); }
     else if (x.t === 'multi') { if (!(v && v.length)) out.push('יש לבחור לפחות פעולה אחת'); }
     else if (x.t === 'count') { if (v === undefined || v === null || v === '') out.push('יש לבחור ' + L); }
-    else if (v && x.dash && !/\d/.test(v)) out.push('נא להזין מספר ארונית תקין (ספרות, ומקף אם צריך)');
+    else if (v && x.dash && !/\d/.test(v)) out.push('נא להזין מספר תקין (ספרות, ומקף אם צריך): ' + L);
     else if (!v || !String(v).trim()) out.push(x.t === 'choice' ? 'יש לבחור: ' + L : x.t === 'num' ? 'נא להזין מספר: ' + L : 'נא למלא: ' + L);
   }
 }
