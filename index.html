@@ -1192,6 +1192,17 @@ input[type=date]::-webkit-datetime-edit { direction: ltr; unicode-bidi: isolate;
 <div id="app"></div>
 
 <script>
+/* ---- תאריכים: תמיד משמאל לימין (26/11/2026 09:47), גם בתוך טקסט בעברית ---- */
+function fdt(v) { const d = v instanceof Date ? v : new Date(v); if (isNaN(d)) return String(v == null ? '' : v); const q = n => String(n).padStart(2, '0'); return q(d.getDate()) + '/' + q(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + q(d.getHours()) + ':' + q(d.getMinutes()); }
+function lrm(t) { return '\u200E' + t + '\u200E'; }
+function normDT(x) {
+  x = String(x == null ? '' : x);
+  let m = /^(\d{1,2})\.(\d{1,2})\.(\d{4}),?\s*(\d{1,2}):(\d{2})/.exec(x);
+  if (m) return m[1].padStart(2, '0') + '/' + m[2].padStart(2, '0') + '/' + m[3] + ' ' + m[4].padStart(2, '0') + ':' + m[5];
+  m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(x);
+  return m ? m[3] + '/' + m[2] + '/' + m[1] : x;
+}
+function ltrSpan(x) { return h('span', { dir: 'ltr', style: 'unicode-bidi:isolate;display:inline-block' }, normDT(x)); }
 const S = { date: new Date().toLocaleDateString('sv-SE') };
 let i = -1; 
 let saved = null; 
@@ -2003,7 +2014,7 @@ function saveWorkRecord(out, ph) {
 const strHash = t => { let a = 5381, b = 52711; for (let k = 0; k < t.length; k++) { const c = t.charCodeAt(k); a = (a * 33) ^ c; b = (b * 33) ^ c; } return (a >>> 0).toString(36) + (b >>> 0).toString(36) + t.length; };
 
 async function _saveWorkRecord(out, ph) {
-  const nowStr = new Date().toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' });
+  const nowStr = fdt(new Date());
   const id = editingId || (saved && saved.id) || ('R-' + Date.now().toString(36).toUpperCase());
   editingId = id;   // המזהה נקבע מיד – שמירה חוזרת לא תיצור דיווח נוסף
   const existingIdx = savedWorks.findIndex(w => w.id === id);
@@ -2172,7 +2183,7 @@ function summary() {
       h('div', { cls: 'saved-icon' }, svgIcon(ICONS.check, 18)),
       h('div', {},
         h('div', { style: 'font-weight:700;color:var(--ok)' }, 'העבודה נשמרה באפליקציה'),
-        h('div', { cls: 'sub-muted' }, 'מזהה ' + saved.id + ' · ' + saved.at)
+        h('div', { cls: 'sub-muted' }, 'מזהה ' + saved.id + ' · ', ltrSpan(saved.at))
       )
     ) : null,
     ...body(),
@@ -2402,7 +2413,7 @@ function savedWorkDetail(w) {
   return [
     h('div', { cls: 'step-header' },
       h('h2', {}, (w.meta && w.meta.project) || 'פרטי עבודה שמורה'),
-      h('div', { cls: 'step-sub' }, 'מזהה ' + w.id + ' · נשמר ב-' + (w.updatedAt || w.createdAt))
+      h('div', { cls: 'step-sub' }, 'מזהה ' + w.id + ' · נשמר ב-', ltrSpan(w.updatedAt || w.createdAt))
     ),
     apprMap[w.id] && apprMap[w.id].s ? h('div', { cls: 'card' }, h('div', { cls: 'lb' }, apprMap[w.id].s === 'approved' ? '✓ אושר על ידי המנהל' : '✕ לא אושר – יש לתקן'), apprMap[w.id].n ? h('div', {}, apprMap[w.id].n) : null) : null,
     h('div', { cls: 'card' }, out.map(([a, b]) => h('div', { cls: 'ln' }, h('span', {}, a), h('span', {}, String(b))))),
@@ -2483,7 +2494,7 @@ function savedWorksSection() {
           h('div', { cls: 'wc-top' },
             m.co ? h('span', { cls: 'co-tag' }, m.co) : h('span', { cls: 'co-tag' }, 'עבודה'),
             apprTag(w.id),
-            h('span', { cls: 'wc-date' }, m.date || w.createdAt || '')
+            h('span', { cls: 'wc-date' }, ltrSpan(m.date || w.createdAt || ''))
           ),
           h('div', { cls: 'wc-title' }, title),
           h('div', { cls: 'wc-sub' },
@@ -2617,7 +2628,7 @@ function greetDate() {
     const now = new Date(), tz = { timeZone: 'Asia/Jerusalem' };
     const wd = new Intl.DateTimeFormat('he-IL', { ...tz, weekday: 'long' }).format(now);
     const p = {}; new Intl.DateTimeFormat('en-GB', { ...tz, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(now).forEach(x => { p[x.type] = x.value; });
-    return wd + ' · ' + p.day + '/' + p.month + '/' + p.year + ' · ' + (p.hour === '24' ? '00' : p.hour) + ':' + p.minute;
+    return wd + ' · \u2066' + p.day + '/' + p.month + '/' + p.year + ' ' + (p.hour === '24' ? '00' : p.hour) + ':' + p.minute + '\u2069';
   } catch (e) { return ''; }
 }
 setInterval(() => { const e = document.getElementById('greetTx'); if (e) e.textContent = greetText(); const d = document.getElementById('greetDt'); if (d) d.textContent = greetDate(); }, 30000);
@@ -2827,7 +2838,7 @@ async function mkPDF(out, ph, title = 'דוח ביצוע עבודה') {
   };
   np();
   x.font = 'bold 44px Arial'; x.fillText(title, W - M, y + 44); y += 72;
-  x.font = '24px Arial'; x.fillStyle = '#666'; x.fillText('הופק: ' + new Date().toLocaleString('he-IL'), W - M, y); y += 46;
+  x.font = '24px Arial'; x.fillStyle = '#666'; x.fillText('הופק: ' + lrm(fdt(new Date())), W - M, y); y += 46;
   for (const [a, b] of out) {
     x.font = '26px Arial';
     const la = wrap(a, 380), lb = wrap(b, W - 2 * M - 420), rh = Math.max(la.length, lb.length) * 36 + 16;
@@ -3038,14 +3049,14 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { cle
 const draftCard = () => {
   const d = draft, q = d.S || {};
   const ttl = [q.project, q.city].filter(Boolean).join(' · ') || 'דיווח ללא שם';
-  const when = d.t ? new Date(d.t).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' }) : '';
+  const when = d.t ? fdt(new Date(d.t)) : '';
   return h('div', { cls: 'draft' },
     h('div', { cls: 'draft-top' },
       h('div', { cls: 'draft-ic' }, svgIcon(ICONS.edit, 20)),
       h('div', { cls: 'draft-tx' },
         h('div', { cls: 'draft-k' }, 'טיוטה פעילה'),
         h('div', { cls: 'draft-t' }, ttl),
-        h('div', { cls: 'sub-muted' }, 'שלב ' + (d.i + 1) + (when ? ' · ' + when : ''))
+        h('div', { cls: 'sub-muted' }, 'שלב ' + (d.i + 1), when ? ' · ' : null, when ? ltrSpan(when) : null)
       )
     ),
     h('div', { cls: 'draft-act' },
