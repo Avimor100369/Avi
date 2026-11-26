@@ -1827,7 +1827,7 @@ function showLogin(msg) {
       const r = await fetch(SB_URL + '/rest/v1/password_requests', { method: 'POST',
         headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
         body: JSON.stringify({ identifier: who.slice(0, 120) }) });
-      if (r.ok) { err.style.color = 'var(--ok,#34C759)'; err.textContent = 'הבקשה נשלחה למנהל. הוא יעדכן אותך בסיסמה חדשה.'; }
+      if (r.ok) { err.style.color = 'var(--ok,#34C759)'; err.textContent = 'הבקשה נשלחה למנהל. הוא יעדכן אותך בסיסמה חדשה.'; notifyAdmins('password_request'); }
       else err.textContent = 'שליחת הבקשה נכשלה. נסה שוב או פנה למנהל.';
     } catch (e) { err.textContent = 'אין חיבור לאינטרנט – נסה שוב כשיש קליטה'; }
     btn.disabled = false;
@@ -2061,6 +2061,7 @@ async function _saveWorkRecord(out, ph) {
     if (supResponse.ok) {
       sent = uploadedPhotos.length >= photoCount;
       console.log('דיווח ותמונות נשלחו בהצלחה ל-Supabase!');
+      if (!(prev && prev.sent)) notifyAdmins('new_report');
     } else {
       console.error('שגיאה בשליחה ל-Supabase:', await supResponse.text());
     }
@@ -2195,6 +2196,10 @@ async function getSubFresh(reg) {
       if (cur && (cur.byteLength !== want.length || new Uint8Array(cur).some((v, i) => v !== want[i]))) { await sub.unsubscribe(); sub = null; } } catch (e) {}
   }
   return sub || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToU8(VAPID_PUBLIC) });
+}
+// התראה למנהל (דיווח חדש / בקשת איפוס סיסמה) – שקט, לא משפיע על השמירה אם נכשל
+async function notifyAdmins(kind) {
+  try { const tok = await authToken(); await fetch(SB_URL + '/functions/v1/send-push', { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ event: kind }) }); } catch (e) {}
 }
 async function savePushSub(sub) {
   const k = sub.toJSON().keys || {}, tok = await authToken();
