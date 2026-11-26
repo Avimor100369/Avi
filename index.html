@@ -2184,10 +2184,18 @@ function summary() {
 }
 
 /* ===== התראות Push מהמנהל ===== */
-const VAPID_PUBLIC = 'BLZFe24aj_atpc3Bh7Vf5Q6pPwzBSgqZQh9vfqClulKswQtxCs6WiwY-e7AuPD8tJcElu06MFyjGvD4uHj63oFM';
+const VAPID_PUBLIC = 'BILvigSt7Oi1CiRG0nLC-uH4W2u83Uumuq0ijuEhZkIJ_H1KWdpFG0fyAmgws2pdWbDN6ue8YVb7OufjErYVXQk';
 const pushSupported = () => ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window) && location.protocol === 'https:';
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const urlB64ToU8 = b => { const p = '='.repeat((4 - b.length % 4) % 4), r = atob((b + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+async function getSubFresh(reg) {
+  let sub = await reg.pushManager.getSubscription();
+  if (sub) {   // הרשמה שנוצרה עם מפתח VAPID ישן – מבטלים ונרשמים מחדש
+    try { const cur = sub.options && sub.options.applicationServerKey, want = urlB64ToU8(VAPID_PUBLIC);
+      if (cur && (cur.byteLength !== want.length || new Uint8Array(cur).some((v, i) => v !== want[i]))) { await sub.unsubscribe(); sub = null; } } catch (e) {}
+  }
+  return sub || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToU8(VAPID_PUBLIC) });
+}
 async function savePushSub(sub) {
   const k = sub.toJSON().keys || {}, tok = await authToken();
   if (tok === SB_KEY) return false;
@@ -2201,7 +2209,7 @@ async function enablePush() {
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') { toast('ההתראות נחסמו. אפשר לאשר אותן בהגדרות המכשיר.'); return false; }
     const reg = await navigator.serviceWorker.ready;
-    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToU8(VAPID_PUBLIC) });
+    const sub = await getSubFresh(reg);
     const okSave = await savePushSub(sub);
     toast(okSave ? 'ההתראות הופעלו' : 'ההרשמה לא נשמרה – נסה שוב בחיבור לאינטרנט');
     if (i < 0) draw(true);
@@ -2213,7 +2221,7 @@ async function refreshPushSub() {
   try {
     if (!pushSupported() || Notification.permission !== 'granted' || !getSess() || navigator.onLine === false) return;
     const reg = await navigator.serviceWorker.ready;
-    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToU8(VAPID_PUBLIC) });
+    const sub = await getSubFresh(reg);
     if (sub) await savePushSub(sub);
   } catch (e) {}
 }
