@@ -1470,6 +1470,16 @@ const CITY_LIST = ["ירושלים","תל אביב","תל אביב יפו","יפ
 const normCity = t => String(t || '').replace(/[׳'’`"״]/g, '').replace(/[-–—־]/g, ' ').replace(/קריית/g, 'קרית').replace(/\s+/g, ' ').trim();
 const CITY_SET = new Set(CITY_LIST.map(normCity));
 
+// כתובת: אם לא נבחרה מרשימת ההצעות – שואלים פעם אחת (רק כשהשירות זמין, כדי לא להציק בלי קליטה)
+function addrOk(st) {
+  if (!st.fields.some(x => x.t === 'addr') || !S.address) return true;
+  const a = String(S.address).trim();
+  if (a === addrPicked || a === addrOkVal || !addrSvcOk) return true;
+  if (!confirm('הכתובת שהוקלדה (' + a + ') לא נבחרה מרשימת ההצעות.\nכדאי לבחור מהרשימה כדי למנוע טעויות. האם להמשיך בכל זאת?')) return false;
+  addrOkVal = a;
+  return true;
+}
+
 // מחזיר false אם הטכנאי בחר לתקן את שם היישוב; אחרת מאפשר להמשיך (גם עם שם שלא ברשימה, אחרי אישור)
 function cityOk(st) {
   if (!st.fields.some(x => x.t === 'city') || !S.city) return true;
@@ -1488,11 +1498,14 @@ function cityOk(st) {
   document.head.append(st);
 })();
 const addrCache = {};
+let addrPicked = '', addrOkVal = '', addrSvcOk = false;   // כתובת שנבחרה מההצעות / אושרה ידנית / האם שירות ההצעות עובד
 async function fetchAddr(q) {
   if (addrCache[q]) return addrCache[q];
+  addrSvcOk = false;
   const r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&accept-language=he&countrycodes=il&limit=8&q=' + encodeURIComponent(q));
   if (!r.ok) throw new Error('addr');
   const j = await r.json(), seen = new Set(), out = [];
+  addrSvcOk = true;
   j.forEach(p => {
     const a = p.address || {}, road = a.road || a.pedestrian || a.footway || a.path;
     if (!road) return;
@@ -1505,7 +1518,7 @@ function suggestBox(ip, x, o, fv) {
   const box = h('div', { cls: 'sg-box', style: 'display:none' });
   let tm, tok = 0;
   const hide = () => { box.style.display = 'none'; };
-  const pick = v => { ip.value = v; o[x.k] = v; fv.classList.add('on'); const g = ip.closest('.field-group'); if (g) g.classList.remove('miss'); hide(); updSP(); sd(); };
+  const pick = v => { ip.value = v; o[x.k] = v; if (x.t === 'addr') addrPicked = v; fv.classList.add('on'); const g = ip.closest('.field-group'); if (g) g.classList.remove('miss'); hide(); updSP(); sd(); };
   const render = (items, hint) => {
     box.replaceChildren(...items.map(v => h('button', { type: 'button', cls: 'sg-it', onmousedown: e => e.preventDefault(), onclick: () => pick(v) }, v)), ...(hint ? [h('div', { cls: 'sg-hint' }, hint)] : []));
     box.style.display = items.length || hint ? 'block' : 'none';
@@ -1520,14 +1533,14 @@ function suggestBox(ip, x, o, fv) {
       const pre = all.filter(c => normCity(c).startsWith(n)), sub = all.filter(c => !normCity(c).startsWith(n) && normCity(c).includes(n));
       render([...pre, ...sub].slice(0, 80));
     } else {
-      if (t.length < 3) { hide(); return; }
+      if (t.length < 2) { hide(); return; }
       const my = ++tok;
       tm = setTimeout(async () => {
         try {
           const items = await fetchAddr((S.city ? S.city + ' ' : '') + t);
-          if (my === tok && document.activeElement === ip) render(items.slice(0, 8), items.length ? '' : '');
+          if (my === tok && document.activeElement === ip) render(items.slice(0, 8), items.length ? '' : 'לא נמצאו הצעות – אפשר להמשיך להקליד ידנית');
         } catch (e) { hide(); }
-      }, 600);
+      }, 450);
     }
   };
   ip.addEventListener('input', upd);
@@ -2785,7 +2798,7 @@ const draw = (preserveFocus = false) => {
             const o = [];
             need(s.fields, S, o);
             errs = o;
-            if (!o.length && !cityOk(s)) return;
+            if (!o.length && !(cityOk(s) && addrOk(s))) return;
             if (o.length) draw();
             else {
               i++;
