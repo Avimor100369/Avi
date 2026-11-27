@@ -2178,6 +2178,53 @@ async function _saveWorkRecord(out, ph) {
   return true;
 }
 
+
+// שליחה אוטומטית של עבודות שמורות שלא נשלחו (בהעדר קליטה) – ברגע שחוזרת הקליטה
+let autoSendBusy = false;
+async function sendPendingWorks(manual) {
+  if (autoSendBusy || navigator.onLine === false || !getSess()) return;
+  const pend = savedWorks.filter(w => w && w.sent === false && w.data);
+  if (!pend.length) return;
+  autoSendBusy = true;
+  let okCount = 0;
+  try {
+    const BASE = 'https://oisozmbfaebtqicleufm.supabase.co';
+    for (const w of pend) {
+      try {
+        const { out, ph } = lines(w.data);
+        const photoCount = ph.reduce((n, [, a]) => n + a.length, 0);
+        const up = await uploadReportPhotos(w.id, ph, BASE, SB_KEY);
+        const d = w.data;
+        const base = { report_id: w.id, contractor_name: d.contractor || null, date: d.date || null, project: d.project || null };
+        const extra = Object.assign({}, base, { city: d.city || null, address: d.address || null, company: d.co || null, photos: JSON.stringify(up) });
+        const full = Object.assign({}, extra, { details: { lines: out.map(l => [l[0], l[1]]), gps: w.gps || null } });
+        const post = body => sbFetch(BASE + '/rest/v1/reports', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify(body) });
+        let r = await post(full);
+        if (r.status === 409) {   // כבר קיימת שורה (שליחה חלקית קודמת) – מעדכנים אותה
+          r = await sbFetch(BASE + '/rest/v1/reports?report_id=eq.' + encodeURIComponent(w.id), { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify({ photos: extra.photos, details: full.details }) });
+        } else if (!r.ok) {
+          r = await post(extra);
+          if (!r.ok) r = await post(base);
+        }
+        if (r.ok && up.length >= photoCount) {
+          const cur = savedWorks.find(x => x.id === w.id);
+          if (cur) { cur.sent = true; okCount++; }
+          try { await idb('put', 'saved_works', savedWorks); } catch (e) {}
+          notifyAdmins('new_report');
+        }
+      } catch (e) { console.warn('שליחה אוטומטית נכשלה:', e); }
+    }
+  } finally { autoSendBusy = false; }
+  if (okCount) {
+    toast(okCount === 1 ? 'עבודה שמורה נשלחה אוטומטית לאתר הניהול' : okCount + ' עבודות שמורות נשלחו אוטומטית לאתר הניהול');
+    if (!document.getElementById('fa-form')) { try { draw(); } catch (e) {} }
+  }
+}
+window.addEventListener('online', () => setTimeout(sendPendingWorks, 1500));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(sendPendingWorks, 1500); });
+setInterval(sendPendingWorks, 60000);
+setTimeout(sendPendingWorks, 5000);
+
 async function saveBtn(e, out, ph) {
   const b = e.currentTarget;
   if (b.disabled) return;
